@@ -1,0 +1,109 @@
+.auth-wrapper {
+  max-width: 440px;
+  margin: 128px auto var(--spacing-96);
+  padding: 0 var(--spacing-24);
+}
+
+.auth-card {
+  background-color: var(--surface-obsidian);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-cards);
+  padding: var(--spacing-40) var(--spacing-36);
+  box-shadow: var(--shadow-xl);
+  text-align: left;
+}
+
+.auth-header {
+  margin-bottom: var(--spacing-32);
+}
+
+.auth-title {
+  font-family: var(--font-inter);
+  font-size: var(--text-heading);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-white);
+  letter-spacing: var(--tracking-heading);
+  margin-bottom: var(--spacing-8);
+}
+
+.auth-subtitle {
+  font-family: var(--font-inter);
+  font-size: var(--text-body-sm);
+  color: var(--color-fog);
+  line-height: var(--leading-body-sm);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-20);
+}
+
+.auth-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.auth-label {
+  font-family: var(--font-inter);
+  font-size: var(--text-caption);
+  color: var(--color-ash);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.auth-input {
+  background-color: var(--surface-charcoal);
+  color: var(--color-white);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-inputs);
+  padding: 12px 16px;
+  font-family: var(--font-inter);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+}
+
+.auth-input:focus {
+  border-color: var(--color-electric-signal);
+  box-shadow: 0 0 0 1px var(--color-electric-signal);
+}
+
+.auth-error {
+  font-family: var(--font-inter);
+  font-size: 13px;
+  color: var(--color-ember);
+  background-color: rgba(230, 113, 79, 0.05);
+  border: 1px solid rgba(230, 113, 79, 0.15);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+
+.auth-footer {
+  margin-top: var(--spacing-24);
+  text-align: center;
+}
+
+.auth-link {
+  font-family: var(--font-inter);
+  font-size: 13px;
+  color: var(--color-ash);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.auth-link:hover {
+  color: var(--color-white);
+}
+
+.auth-link-highlight {
+  color: var(--color-sky-wash);
+  font-weight: var(--font-weight-medium);
+}
+
+.auth-link-highlight:hover {
+  color: var(--color-white);
+}
