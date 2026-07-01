@@ -1,0 +1,87 @@
+.terminal-wrapper {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--surface-midnight-indigo);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-small-card);
+  box-shadow: var(--shadow-xl);
+  height: 320px;
+  overflow: hidden;
+}
+
+.terminal-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.terminal-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.terminal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.terminal-dot-red {
+  background-color: #ff5f56;
+}
+
+.terminal-dot-yellow {
+  background-color: #ffbd2e;
+}
+
+.terminal-dot-green {
+  background-color: #27c93f;
+}
+
+.terminal-title-text {
+  font-family: var(--font-ui-monospace);
+  font-size: 10px;
+  color: var(--color-ash);
+  letter-spacing: 0.5px;
+}
+
+.terminal-spacer {
+  width: 36px;
+}
+
+.terminal-viewport {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  font-family: var(--font-ui-monospace);
+  font-size: 11px;
+  text-align: left;
+}
+
+.terminal-idle {
+  color: var(--color-ash);
+  font-style: italic;
+}
+
+.terminal-log-empty {
+  min-height: 14px;
+}
+
+.terminal-log-command {
+  font-weight: bold;
+  margin: 8px 0 4px;
+}
+
+.terminal-prompt-symbol {
+  color: var(--color-electric-signal);
+  margin-right: 8px;
+}
+
+.terminal-log-default {
+  white-space: pre-wrap;
+  line-height: 1.5;
+}

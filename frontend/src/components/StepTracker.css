@@ -1,0 +1,144 @@
+.steptracker-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-20);
+  background-color: var(--surface-obsidian);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-cards);
+  padding: var(--spacing-24);
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+}
+
+.steptracker-title {
+  font-family: var(--font-inter);
+  font-size: 18px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-white);
+  margin-bottom: var(--spacing-4);
+  letter-spacing: -0.4px;
+}
+
+.steptracker-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 12px;
+}
+
+.step-item {
+  display: flex;
+  gap: 16px;
+  position: relative;
+}
+
+.step-connector {
+  position: absolute;
+  left: 9px;
+  top: 22px;
+  bottom: -26px;
+  width: 2px;
+  z-index: 0;
+  transition: background-color 0.3s ease;
+}
+
+.step-connector-completed {
+  background-color: var(--color-vivid-mint);
+}
+
+.step-connector-pending {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.step-node {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  transition: all 0.3s ease;
+}
+
+.step-node-completed {
+  background-color: var(--color-vivid-mint);
+  border: 1px solid var(--color-vivid-mint);
+}
+
+.step-node-active {
+  background-color: var(--color-electric-signal);
+  border: 1px solid var(--color-electric-signal);
+  box-shadow: 0 0 12px var(--color-electric-signal);
+}
+
+.step-node-failed {
+  background-color: var(--color-ember);
+  border: 1px solid var(--color-ember);
+  box-shadow: 0 0 12px var(--color-ember);
+}
+
+.step-node-queued {
+  background-color: var(--surface-charcoal);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.step-node-active-bullet {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-white);
+}
+
+.step-content {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.step-text-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.step-name {
+  font-family: var(--font-inter);
+  font-size: 14px;
+  transition: color 0.3s ease;
+}
+
+.step-name-highlighted {
+  font-weight: var(--font-weight-semibold);
+}
+
+.step-name-regular {
+  font-weight: var(--font-weight-medium);
+}
+
+.step-name-standard {
+  color: var(--color-white);
+}
+
+.step-name-pending {
+  color: var(--color-ash);
+}
+
+.step-description {
+  font-family: var(--font-inter);
+  font-size: 12px;
+  transition: color 0.3s ease;
+  max-width: 460px;
+}
+
+.step-desc-standard {
+  color: var(--color-fog);
+}
+
+.step-desc-pending {
+  color: var(--color-slate);
+}
