@@ -1,0 +1,107 @@
+{
+  "timestamp": "2026-08-17T16:03:47.724234",
+  "summary": {
+    "total_tests_run": 0,
+    "total_failures": 0,
+    "pytest_exit_code": 1,
+    "bugs_detected": 6
+  },
+  "bugs": [
+    {
+      "test_name": "tests\\test_calculator.py::test_subtract",
+      "error_type": "AssertionError",
+      "error_message": "assert 8 == 2\nE    +  where 8 = subtract(5, 3)",
+      "location": {
+        "file_path": "tests/test_calculator.py",
+        "line_number": 21
+      },
+      "inferred_source_module": "calculator.py",
+      "code": {
+        "failing_function": "def test_subtract():\n    \"\"\"Test subtraction - should FAIL.\"\"\"\n    assert subtract(5, 3) == 2\n    assert subtract(10, 4) == 6\n    assert subtract(0, 5) == -5",
+        "context_before": "    assert add(2, 3) == 5\n    assert add(-1, 1) == 0\n    assert add(0, 0) == 0\n\n",
+        "context_after": "\n\ndef test_multiply():\n    \"\"\"Test multiplication - should pass.\"\"\"\n    assert multiply(3, 4) == 12"
+      },
+      "traceback": "tests\\test_calculator.py:21: in test_subtract\n    assert subtract(5, 3) == 2\nE   assert 8 == 2\nE    +  where 8 = subtract(5, 3)"
+    },
+    {
+      "test_name": "tests\\test_calculator.py::test_divide",
+      "error_type": "AssertionError",
+      "error_message": "assert 20 == 5\nE    +  where 20 = divide(10, 2)",
+      "location": {
+        "file_path": "tests/test_calculator.py",
+        "line_number": 35
+      },
+      "inferred_source_module": "calculator.py",
+      "code": {
+        "failing_function": "def test_divide():\n    \"\"\"Test division - should FAIL.\"\"\"\n    assert divide(10, 2) == 5\n    assert divide(9, 3) == 3\n    assert divide(100, 4) == 25",
+        "context_before": "    assert multiply(3, 4) == 12\n    assert multiply(0, 100) == 0\n    assert multiply(-2, 3) == -6\n\n",
+        "context_after": "\n\ndef test_power():\n    \"\"\"Test power - should pass.\"\"\"\n    assert power(2, 3) == 8"
+      },
+      "traceback": "tests\\test_calculator.py:35: in test_divide\n    assert divide(10, 2) == 5\nE   assert 20 == 5\nE    +  where 20 = divide(10, 2)"
+    },
+    {
+      "test_name": "tests\\test_calculator.py::test_modulo",
+      "error_type": "AssertionError",
+      "error_message": "assert 7 == 1\nE    +  where 7 = modulo(10, 3)",
+      "location": {
+        "file_path": "tests/test_calculator.py",
+        "line_number": 49
+      },
+      "inferred_source_module": "calculator.py",
+      "code": {
+        "failing_function": "def test_modulo():\n    \"\"\"Test modulo - should FAIL.\"\"\"\n    assert modulo(10, 3) == 1\n    assert modulo(17, 5) == 2\n    assert modulo(20, 6) == 2",
+        "context_before": "    assert power(2, 3) == 8\n    assert power(5, 2) == 25\n    assert power(10, 0) == 1\n\n",
+        "context_after": ""
+      },
+      "traceback": "tests\\test_calculator.py:49: in test_modulo\n    assert modulo(10, 3) == 1\nE   assert 7 == 1\nE    +  where 7 = modulo(10, 3)"
+    },
+    {
+      "test_name": "tests\\test_string_utils.py::test_reverse_string",
+      "error_type": "AssertionError",
+      "error_message": "assert 'hello' == 'olleh'",
+      "location": {
+        "file_path": "tests/test_string_utils.py",
+        "line_number": 14
+      },
+      "inferred_source_module": "string_utils.py",
+      "code": {
+        "failing_function": "def test_reverse_string():\n    \"\"\"Test string reversal - should FAIL.\"\"\"\n    assert reverse_string(\"hello\") == \"olleh\"\n    assert reverse_string(\"world\") == \"dlrow\"\n    assert reverse_string(\"\") == \"\"",
+        "context_before": "sys.path.insert(0, str(Path(__file__).parent.parent / \"src\"))\n\nfrom string_utils import reverse_string, capitalize_words, count_vowels, is_palindrome\n\n",
+        "context_after": "\n\ndef test_capitalize_words():\n    \"\"\"Test word capitalization - should pass.\"\"\"\n    assert capitalize_words(\"hello world\") == \"Hello World\""
+      },
+      "traceback": "tests\\test_string_utils.py:14: in test_reverse_string\n    assert reverse_string(\"hello\") == \"olleh\"\nE   AssertionError: assert 'hello' == 'olleh'\nE     \nE     - olleh\nE     + hello"
+    },
+    {
+      "test_name": "tests\\test_string_utils.py::test_count_vowels",
+      "error_type": "AssertionError",
+      "error_message": "assert 5 == 2",
+      "location": {
+        "file_path": "tests/test_string_utils.py",
+        "line_number": 27
+      },
+      "inferred_source_module": "string_utils.py",
+      "code": {
+        "failing_function": "def test_count_vowels():\n    \"\"\"Test vowel counting - should FAIL.\"\"\"\n    assert count_vowels(\"hello\") == 2  # e, o\n    assert count_vowels(\"world\") == 1  # o\n    assert count_vowels(\"aeiou\") == 5\n    assert count_vowels(\"xyz\") == 0",
+        "context_before": "    \"\"\"Test word capitalization - should pass.\"\"\"\n    assert capitalize_words(\"hello world\") == \"Hello World\"\n    assert capitalize_words(\"python programming\") == \"Python Programming\"\n\n",
+        "context_after": "\n\ndef test_is_palindrome():\n    \"\"\"Test palindrome detection - should FAIL.\"\"\"\n    assert is_palindrome(\"racecar\") == True"
+      },
+      "traceback": "tests\\test_string_utils.py:27: in test_count_vowels\n    assert count_vowels(\"hello\") == 2  # e, o\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   AssertionError: assert 5 == 2\nE    +  where 5 = count_vowels('hello')"
+    },
+    {
+      "test_name": "tests\\test_string_utils.py::test_is_palindrome",
+      "error_type": "AssertionError",
+      "error_message": "assert True == False",
+      "location": {
+        "file_path": "tests/test_string_utils.py",
+        "line_number": 36
+      },
+      "inferred_source_module": "string_utils.py",
+      "code": {
+        "failing_function": "def test_is_palindrome():\n    \"\"\"Test palindrome detection - should FAIL.\"\"\"\n    assert is_palindrome(\"racecar\") == True\n    assert is_palindrome(\"hello\") == False\n    assert is_palindrome(\"madam\") == True\n    assert is_palindrome(\"test\") == False",
+        "context_before": "    assert count_vowels(\"world\") == 1  # o\n    assert count_vowels(\"aeiou\") == 5\n    assert count_vowels(\"xyz\") == 0\n\n",
+        "context_after": ""
+      },
+      "traceback": "tests\\test_string_utils.py:36: in test_is_palindrome\n    assert is_palindrome(\"hello\") == False\nE   AssertionError: assert True == False\nE    +  where True = is_palindrome('hello')"
+    }
+  ]
+}

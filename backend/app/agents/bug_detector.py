@@ -198,9 +198,9 @@ class BugDetector:
         # Split output by test sections to extract detailed error info
         # Look for the FAILURES section
         failures_section_match = re.search(
-            r'=+ FAILURES =+(.+?)(?:=+ .+ =+|$)',
+            r'=+\s*FAILURES\s*=+(.+?)(?:=+\s*short test summary|=+\s*\d+\s*failed|$)',
             output,
-            re.DOTALL
+            re.DOTALL | re.IGNORECASE
         )
         
         if not failures_section_match:
@@ -232,15 +232,40 @@ class BugDetector:
             
             # Extract file path and line number from traceback
             # Pattern: file.py:123: in function_name
+            # On Windows, paths use backslashes, so we need to handle both
             traceback_pattern = re.compile(r'([^\s]+\.py):(\d+):', re.MULTILINE)
             matches = traceback_pattern.findall(details)
             
+            # Also capture the test file path for source module inference
+            test_file_path = ""
+            
             if matches:
-                # Get the last file/line in the traceback (usually the actual error location)
-                file_path, line_number = matches[-1]
-                line_number = int(line_number)
+                # Look for the first non-test file (the actual source code)
+                file_path, line_number = None, 0
+                for match_path, match_line in matches:
+                    # Capture test file for inference (first match is usually the test file)
+                    if not test_file_path and ('test_' in match_path or 'tests' in match_path.lower()):
+                        test_file_path = match_path
+                    
+                    # Skip test files, we want the source file
+                    if 'test_' not in match_path and 'tests' not in match_path.lower():
+                        file_path = match_path.replace('\\', '/')  # Normalize to forward slashes
+                        line_number = int(match_line)
+                        break
+                
+                # If no source file found, use the first match (test file)
+                if not file_path:
+                    file_path, line_number = matches[0]
+                    file_path = file_path.replace('\\', '/')
+                    line_number = int(line_number)
             else:
                 file_path, line_number = '', 0
+            
+            # Create full test name with file path for better context
+            if test_file_path:
+                full_test_name = f"{test_file_path}::{test_name}"
+            else:
+                full_test_name = test_name
             
             # Extract error type and message
             # Pattern: ErrorType: message or E       assert statement
@@ -263,7 +288,7 @@ class BugDetector:
                 error_message = 'Test failed'
             
             failures.append({
-                'test_name': test_name,
+                'test_name': full_test_name,
                 'error_type': error_type,
                 'error_message': error_message,
                 'file_path': file_path,
@@ -291,6 +316,9 @@ class BugDetector:
             repo_path, file_path, line_number
         )
         
+        # Infer source module from test name
+        inferred_module = self._infer_source_module(failure_info['test_name'])
+        
         return BugReport(
             test_name=failure_info['test_name'],
             error_type=failure_info['error_type'],
@@ -300,7 +328,8 @@ class BugDetector:
             failing_function_code=function_code,
             context_before=context_before,
             context_after=context_after,
-            traceback=failure_info.get('traceback')
+            traceback=failure_info.get('traceback'),
+            inferred_source_module=inferred_module
         )
     
     def _extract_code_context(
@@ -463,3 +492,41 @@ class BugDetector:
             return total, failures
         
         return 0, 0
+    
+    def _infer_source_module(self, test_name: str) -> str:
+        """Infer the source module name from the test name.
+        
+        Converts test file names to likely source file names:
+        - tests/test_calculator.py::test_add -> calculator.py
+        - test_math_utils.py::test_divide -> math_utils.py
+        - test_string_helper.py::test_reverse -> string_helper.py
+        
+        Args:
+            test_name: Full test name (e.g., 'tests/test_calculator.py::test_add')
+            
+        Returns:
+            Inferred source module name (e.g., 'calculator.py')
+        """
+        # Extract the file path from test name (before '::')
+        if '::' in test_name:
+            test_file = test_name.split('::')[0]
+        else:
+            # If no '::', the test_name might just be the function name
+            # Try to extract from the full test path if available
+            test_file = test_name
+        
+        # Get just the filename without path
+        filename = Path(test_file).name
+        
+        # If filename doesn't end with .py, it's likely just a test function name
+        # In that case, we can't reliably infer the source module
+        if not filename.endswith('.py'):
+            return ""
+        
+        # Remove 'test_' prefix if present
+        if filename.startswith('test_'):
+            source_name = filename[5:]  # Remove 'test_' prefix
+        else:
+            source_name = filename
+        
+        return source_name
