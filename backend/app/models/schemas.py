@@ -18,6 +18,7 @@ class BugReport:
         context_before: Lines of code before the failing function (for context)
         context_after: Lines of code after the failing function (for context)
         traceback: Full stack trace (optional, for debugging)
+        inferred_source_module: Inferred source module name from test file (e.g., 'calculator.py' from 'test_calculator.py')
     """
     test_name: str
     error_type: str
@@ -28,6 +29,7 @@ class BugReport:
     context_before: str = ""
     context_after: str = ""
     traceback: Optional[str] = None
+    inferred_source_module: str = ""
 
 
 @dataclass
