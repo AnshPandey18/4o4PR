@@ -1,0 +1,30 @@
+# Core Dependencies
+fastapi==0.115.0
+uvicorn==0.32.0
+pydantic==2.10.3
+python-dotenv==1.0.1
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0
+
+# HTTP Client
+httpx==0.28.1
+requests==2.32.3
+
+# GitHub API
+PyGithub==2.5.0
+
+# Anthropic Claude API
+anthropic==0.40.0
+
+# Docker SDK
+docker==7.1.0
+
+# Utilities
+python-multipart==0.0.20
+aiofiles==24.1.0
+
+# Note: If you still encounter issues with Python 3.13, consider using Python 3.11 or 3.12
+# Python 3.13 is very new and some packages may not be fully compatible yet
