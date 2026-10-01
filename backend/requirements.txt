@@ -4,6 +4,9 @@
 # Testing (required for Bug Detector)
 pytest>=8.0.0
 
+# Configuration
+pyyaml>=6.0.0
+
 # For verification script
 # No additional dependencies needed - Bug Detector uses only Python stdlib!
 
