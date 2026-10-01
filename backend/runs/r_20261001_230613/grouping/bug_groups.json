@@ -1,0 +1,96 @@
+{
+  "excluded": [],
+  "groups": [
+    {
+      "bug_ids": [
+        "b_056a5081c629",
+        "b_54e477c51122",
+        "b_bd675980c5ec"
+      ],
+      "clusters": [
+        {
+          "bug_ids": [
+            "b_056a5081c629"
+          ],
+          "symbol_id": "src/calculator.py::subtract"
+        },
+        {
+          "bug_ids": [
+            "b_54e477c51122"
+          ],
+          "symbol_id": "src/calculator.py::divide"
+        },
+        {
+          "bug_ids": [
+            "b_bd675980c5ec"
+          ],
+          "symbol_id": "src/calculator.py::modulo"
+        }
+      ],
+      "estimated_tokens": 500,
+      "group_id": "G1",
+      "group_key": "8d08331c81d4060c",
+      "kind": "source",
+      "priority": 1,
+      "status": "pending",
+      "suspect": {
+        "file": "src/calculator.py",
+        "resolution": "resolved",
+        "symbols": [
+          "src/calculator.py::divide",
+          "src/calculator.py::modulo",
+          "src/calculator.py::subtract"
+        ]
+      }
+    },
+    {
+      "bug_ids": [
+        "b_3d27458021e3",
+        "b_c283258e46bb",
+        "b_e6f0145b1e87"
+      ],
+      "clusters": [
+        {
+          "bug_ids": [
+            "b_e6f0145b1e87"
+          ],
+          "symbol_id": "src/string_utils.py::reverse_string"
+        },
+        {
+          "bug_ids": [
+            "b_3d27458021e3"
+          ],
+          "symbol_id": "src/string_utils.py::count_vowels"
+        },
+        {
+          "bug_ids": [
+            "b_c283258e46bb"
+          ],
+          "symbol_id": "src/string_utils.py::is_palindrome"
+        }
+      ],
+      "estimated_tokens": 600,
+      "group_id": "G2",
+      "group_key": "59bed59954074e5a",
+      "kind": "source",
+      "priority": 1,
+      "status": "pending",
+      "suspect": {
+        "file": "src/string_utils.py",
+        "resolution": "resolved",
+        "symbols": [
+          "src/string_utils.py::count_vowels",
+          "src/string_utils.py::is_palindrome",
+          "src/string_utils.py::reverse_string"
+        ]
+      }
+    }
+  ],
+  "run_id": "r_20261001_230613",
+  "schema_version": "1.0",
+  "totals": {
+    "bugs": 6,
+    "excluded": 0,
+    "groups": 2
+  }
+}
