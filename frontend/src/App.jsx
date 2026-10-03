@@ -13,6 +13,8 @@ import HistorySidebar from './components/HistorySidebar';
 export default function App() {
   const [user, setUser] = useState(null);
   const [activeRun, setActiveRun] = useState(null);
+  // completedRun stores the final summary after a pipeline finishes
+  const [completedRun, setCompletedRun] = useState(null);
 
   const handleLogin = (userInfo) => {
     setUser(userInfo);
@@ -21,13 +23,20 @@ export default function App() {
   const handleLogout = () => {
     setUser(null);
     setActiveRun(null);
+    setCompletedRun(null);
   };
 
   const handleStartRun = (runDetails) => {
+    setCompletedRun(null);
     setActiveRun({
       ...runDetails,
       status: 'running'
     });
+  };
+
+  const handleRunComplete = (summary) => {
+    // Called by LiveStatus when the pipeline finishes
+    setCompletedRun(summary);
   };
 
   const handleResetRun = () => {
@@ -50,11 +59,11 @@ export default function App() {
           />
           <Route 
             path="/status" 
-            element={user ? <LiveStatus activeRun={activeRun} onResetRun={handleResetRun} /> : <Navigate to="/login" replace />} 
+            element={user ? <LiveStatus activeRun={activeRun} onResetRun={handleResetRun} onRunComplete={handleRunComplete} /> : <Navigate to="/login" replace />} 
           />
           <Route
             path="/report"
-            element={user ? <Report /> : <Navigate to="/login" replace />}
+            element={user ? <Report completedRun={completedRun} /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/result"
