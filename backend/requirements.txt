@@ -1,26 +1,7 @@
-# Minimal requirements for Bug Detector module only
-# Use this if you're having issues with Python 3.13
-
-# Testing (required for Bug Detector)
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.0.0
 pytest>=8.0.0
-
-# Configuration
 pyyaml>=6.0.0
-
-# For verification script
-# No additional dependencies needed - Bug Detector uses only Python stdlib!
-
-# Optional: If you want to run the full test suite
 pytest-asyncio>=0.24.0
 pytest-cov>=6.0.0
-
-# Note: The Bug Detector module itself only requires:
-# - pytest (for running tests on target repositories)
-# - Python standard library (subprocess, ast, pathlib, re)
-#
-# The pydantic, FastAPI, etc. dependencies are only needed for:
-# - The API server
-# - Pipeline orchestration
-# - Integration with other modules
-#
-# You can test and use the Bug Detector with just pytest!

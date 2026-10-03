@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PIPELINE_STEPS } from '../data/mockPipeline';
+import { streamRun } from '../services/api';
 import './LiveStatus.css';
 
 /* ── elapsed timer ── */
@@ -27,7 +28,6 @@ function useElapsedTimer(running) {
 function LogLine({ line, idx }) {
   if (!line) return <div key={idx} style={{ minHeight: 14 }} />;
   let cls = 'ls2-log-default';
-  let prefix = null;
 
   const isCmd = line.startsWith('Running command:') || line.startsWith('Initializing git clone') ||
     line.startsWith('Staging files:') || line.startsWith('Committing') || line.startsWith('Pushing') ||
@@ -54,118 +54,113 @@ function LogLine({ line, idx }) {
   return <div key={idx} className={cls}>{line}</div>;
 }
 
-/* ── ROOT CAUSE ── extracted from logs ── */
-const ROOT_CAUSE_SNIPPETS = [
-  '"The failure stems from an unprotected endpoint — the route handler lacks the @login_required decorator, allowing unauthenticated requests to succeed with HTTP 200 instead of returning 401."',
-  '"Connection timeouts arise because the socket timeout is set to None, causing the pool to wait indefinitely. Setting an explicit 30-second limit resolves the deadlock."',
-  '"Unclosed WebSocket sockets accumulate in the pool because close_pool() never iterates over open connections. Explicit iteration and clearing the pool at teardown eliminates the leak."',
-];
-
-export default function LiveStatus({ activeRun, onResetRun }) {
-  const navigate  = useNavigate();
+export default function LiveStatus({ activeRun, onResetRun, onRunComplete }) {
+  const navigate   = useNavigate();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [pipelineStatus,   setPipelineStatus]   = useState('idle');
+  const [pipelineStatus,   setPipelineStatus]   = useState('running');
   const [consoleLogs,      setConsoleLogs]       = useState([]);
-  const [progress,         setProgress]          = useState(0);
+  const [progress,         setProgress]          = useState(5);
   const [rootCause,        setRootCause]         = useState('');
+  const [prUrl,            setPrUrl]             = useState(null);
   const [paused,           setPaused]            = useState(false);
+  const [backendOnline,    setBackendOnline]      = useState(true);
 
-  const logsQueueRef   = useRef([]);
-  const logIntervalRef = useRef(null);
-  const logBodyRef     = useRef(null);
+  const logBodyRef = useRef(null);
+  const esRef      = useRef(null);
 
-  const runRepo   = activeRun?.repo   || 'AnshPandey18/4o4PR';
-  const runBug    = activeRun?.bug    || 'Issue #404: pytest failure in auth module';
-  const shouldFail = activeRun?.shouldFail || false;
-  const jobId     = 'PA-' + Math.floor(Math.random() * 9000 + 1000) + '-X';
+  const runRepo = activeRun?.repo || 'AnshPandey18/4o4PR';
+  const runBug  = activeRun?.bug  || 'Issue #404: pytest failure in auth module';
+  const runId   = activeRun?.runId;
 
   const timer = useElapsedTimer(pipelineStatus === 'running' && !paused);
-
-  const processLine = l => l.replace(/{REPO}/g, runRepo).replace(/{BUG}/g, runBug);
-
-  const failureLogs = [
-    'Spawning docker container (python:3.10-alpine)...',
-    'Applying patch to src/core/router.py...',
-    'Running command: pytest tests/',
-    '============================= test session starts =============================',
-    'platform linux -- Python 3.10.8, pytest-7.2.1, pluggy-1.0.0',
-    'rootdir: /app', 'collected 3 items', '',
-    'tests/test_core.py ..F                                                   [100%]', '',
-    '================================== FAILURES ===================================',
-    'E       AssertionError: assert 500 == 401',
-    '=========================== 1 failed, 2 passed in 1.34s ===========================',
-    'ERROR: Pytest validation check failed after patch application.',
-    'Fix verification status: FAILED.',
-  ];
-
-  const startSimulation = () => {
-    clearInterval(logIntervalRef.current);
-    setCurrentStepIndex(0); setPipelineStatus('running');
-    setConsoleLogs([`[INFO] Starting patch workflow for: ${runRepo}...`]);
-    setProgress(5); setRootCause(''); setPaused(false);
-    logsQueueRef.current = [...PIPELINE_STEPS[0].logs.map(processLine)];
-  };
-
-  /* auto-start */
-  useEffect(() => { startSimulation(); return () => clearInterval(logIntervalRef.current); }, [activeRun]);
 
   /* auto-scroll logs */
   useEffect(() => {
     if (logBodyRef.current) logBodyRef.current.scrollTop = logBodyRef.current.scrollHeight;
   }, [consoleLogs]);
 
-  /* set root-cause when detect step finishes */
+  /* connect to SSE or fall back to mock simulation */
   useEffect(() => {
-    if (currentStepIndex >= 1 && !rootCause) {
-      setRootCause(ROOT_CAUSE_SNIPPETS[Math.floor(Math.random() * ROOT_CAUSE_SNIPPETS.length)]);
+    if (!runId) {
+      // No backend run — show idle state with info message
+      setConsoleLogs(['[INFO] No active backend run. Please start a run from the Trigger page.']);
+      setPipelineStatus('idle');
+      return;
     }
-  }, [currentStepIndex]);
 
-  /* simulation tick */
-  useEffect(() => {
-    if (pipelineStatus !== 'running') return;
-    logIntervalRef.current = setInterval(() => {
+    // Connect to real SSE stream
+    const es = streamRun(runId);
+    esRef.current = es;
+
+    es.onmessage = (evt) => {
       if (paused) return;
-      if (logsQueueRef.current.length > 0) {
-        const next = logsQueueRef.current.shift();
-        setConsoleLogs(p => [...p, next]);
-        setProgress(() => {
-          const base = (currentStepIndex / PIPELINE_STEPS.length) * 100;
-          const size = 100 / PIPELINE_STEPS.length;
-          const sub  = (1 - (logsQueueRef.current.length / (PIPELINE_STEPS[currentStepIndex].logs.length || 10))) * size;
-          return Math.min(Math.round(base + sub), 98);
-        });
-      } else {
-        clearInterval(logIntervalRef.current);
-        const isLast = currentStepIndex === PIPELINE_STEPS.length - 1;
-        if (shouldFail && currentStepIndex === 3) {
-          setPipelineStatus('failed');
-          setConsoleLogs(p => [...p, ...failureLogs.map(processLine)]);
-          setProgress(65);
-        } else if (isLast) {
-          setPipelineStatus('completed'); setProgress(100);
-        } else {
-          const next = currentStepIndex + 1;
-          setCurrentStepIndex(next);
-          logsQueueRef.current = [...PIPELINE_STEPS[next].logs.map(processLine)];
-          setConsoleLogs(p => [...p, `\n[STATUS] ── ${PIPELINE_STEPS[next].name} ──`]);
+      try {
+        const data = JSON.parse(evt.data);
+
+        // Append log line
+        if (data.line !== null && data.line !== undefined) {
+          setConsoleLogs(prev => [...prev, data.line]);
         }
-      }
-    }, 220);
-    return () => clearInterval(logIntervalRef.current);
-  }, [pipelineStatus, currentStepIndex, shouldFail, paused]);
+
+        // Update step tracker
+        if (typeof data.step_index === 'number') {
+          setCurrentStepIndex(data.step_index);
+          // Calculate progress
+          const base = (data.step_index / PIPELINE_STEPS.length) * 100;
+          setProgress(Math.min(Math.round(base + 100 / PIPELINE_STEPS.length * 0.5), 98));
+        }
+
+        // Root cause
+        if (data.root_cause && !rootCause) {
+          setRootCause(data.root_cause);
+        }
+
+        // PR URL
+        if (data.pr_url) {
+          setPrUrl(data.pr_url);
+        }
+
+        // Final state
+        if (data.finished) {
+          setPipelineStatus(data.status);
+          setProgress(data.status === 'completed' ? 100 : 65);
+          es.close();
+          // Notify App so Report page can use the real run data
+          onRunComplete?.({
+            runId,
+            runDir: data.run_dir,
+            status: data.status,
+            bugsDetected: data.bugs_detected,
+            testsTotal: data.tests_total,
+            testsPassed: data.tests_passed,
+            testsFailed: data.tests_failed,
+            durationMs: data.duration_ms,
+            repo: runRepo,
+            bug: runBug,
+          });
+        }
+      } catch {/* ignore parse errors */}
+    };
+
+    es.onerror = () => {
+      setBackendOnline(false);
+      setPipelineStatus('failed');
+      setConsoleLogs(prev => [...prev, '[ERROR] Lost connection to backend. Is the server running?']);
+      es.close();
+    };
+
+    return () => es.close();
+  }, [runId]);
 
   const handleBack = () => { onResetRun?.(); navigate('/run'); };
 
-  /* step display info */
   const stepOf = `Step ${Math.min(currentStepIndex + 1, PIPELINE_STEPS.length)} of ${PIPELINE_STEPS.length}`;
 
   return (
     <div className="ls2-page">
-      {/* terminal grid bg */}
       <div className="ls2-grid-bg" />
 
-      {/* ── STICKY PROGRESS BAR ── */}
+      {/* sticky progress bar */}
       <div className="ls2-progress-rail">
         <div
           className={`ls2-progress-fill ${pipelineStatus === 'completed' ? 'ls2-fill-done' : pipelineStatus === 'failed' ? 'ls2-fill-fail' : ''}`}
@@ -174,8 +169,7 @@ export default function LiveStatus({ activeRun, onResetRun }) {
       </div>
 
       <div className="ls2-wrap">
-
-        {/* ── PAGE EYEBROW ── */}
+        {/* eyebrow */}
         <section className="ls2-eyebrow-section">
           <div className="ls2-eyebrow-left">
             <div className="ls2-eyebrow-chips">
@@ -183,7 +177,7 @@ export default function LiveStatus({ activeRun, onResetRun }) {
                 {pipelineStatus === 'running' && <span className="ls2-chip-dot" />}
                 {pipelineStatus === 'running' ? 'Live Run' : pipelineStatus === 'completed' ? 'Completed' : pipelineStatus === 'failed' ? 'Failed' : 'Idle'}
               </span>
-              <span className="ls2-job-id">/ Job #{jobId}</span>
+              <span className="ls2-job-id">/ Job #{runId || 'N/A'}</span>
             </div>
             <h1 className="ls2-headline">
               Automated Vulnerability<br />
@@ -231,30 +225,26 @@ export default function LiveStatus({ activeRun, onResetRun }) {
           </div>
         </section>
 
-        {/* ── MAIN CONTENT GRID ── */}
+        {/* main grid */}
         <div className="ls2-main-grid">
 
-          {/* ── LEFT: PIPELINE TRACKER ── */}
+          {/* left: pipeline tracker */}
           <div className="ls2-left">
             <div className="ls2-card">
               <div className="ls2-card-head">
                 <h2 className="ls2-card-title">Execution Pipeline</h2>
                 <span className="ls2-step-of">{stepOf}</span>
               </div>
-
               <div className="ls2-steps">
-                {/* vertical spine */}
                 <div className="ls2-spine" />
-
                 {PIPELINE_STEPS.map((step, idx) => {
-                  const done   = idx < currentStepIndex && pipelineStatus !== 'failed';
-                  const active = idx === currentStepIndex && pipelineStatus === 'running';
-                  const failed = idx === currentStepIndex && pipelineStatus === 'failed';
+                  const done    = idx < currentStepIndex && pipelineStatus !== 'failed';
+                  const active  = idx === currentStepIndex && pipelineStatus === 'running';
+                  const failed  = idx === currentStepIndex && pipelineStatus === 'failed';
                   const pending = idx > currentStepIndex || pipelineStatus === 'idle';
 
                   return (
                     <div key={step.id} className={`ls2-step ${done ? 'step-done' : active ? 'step-active' : failed ? 'step-fail' : 'step-pending'}`}>
-                      {/* node */}
                       <div className="ls2-node-wrap">
                         <div className="ls2-node">
                           {done && (
@@ -275,21 +265,14 @@ export default function LiveStatus({ activeRun, onResetRun }) {
                             </span>
                           )}
                         </div>
-                        {/* active ring */}
                         {active && <div className="ls2-node-ring" />}
                       </div>
-
-                      {/* content */}
                       <div className="ls2-step-content">
                         <div className="ls2-step-top">
                           <span className="ls2-step-name">{step.name}</span>
-                          {active && (
-                            <span className="ls2-running-badge">
-                              <span className="ls2-running-dot" />RUNNING
-                            </span>
-                          )}
-                          {done && <span className="ls2-done-badge">DONE</span>}
-                          {failed && <span className="ls2-fail-badge">FAILED</span>}
+                          {active  && <span className="ls2-running-badge"><span className="ls2-running-dot" />RUNNING</span>}
+                          {done    && <span className="ls2-done-badge">DONE</span>}
+                          {failed  && <span className="ls2-fail-badge">FAILED</span>}
                         </div>
                         <p className="ls2-step-desc">{step.description}</p>
                       </div>
@@ -300,9 +283,8 @@ export default function LiveStatus({ activeRun, onResetRun }) {
             </div>
           </div>
 
-          {/* ── RIGHT: LOG + ROOT CAUSE + OUTCOME ── */}
+          {/* right: log + root cause + outcome */}
           <div className="ls2-right">
-
             {/* stdout card */}
             <div className="ls2-card ls2-card-teal">
               <div className="ls2-card-head">
@@ -349,7 +331,11 @@ export default function LiveStatus({ activeRun, onResetRun }) {
                   </div>
                   <p className="ls2-outcome-desc">Fix generated, validated against pytest docker sandbox, and submitted as a pull request.</p>
                   <div className="ls2-outcome-actions">
-                    <a href={`https://github.com/${runRepo}/pull/73`} target="_blank" rel="noopener noreferrer" className="ls2-pr-link">
+                    <button className="ls2-btn-primary" onClick={() => navigate('/report')}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                      View Full Report
+                    </button>
+                    <a href={prUrl || `https://github.com/${runRepo}/pull/73`} target="_blank" rel="noopener noreferrer" className="ls2-pr-link">
                       View Pull Request on GitHub
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
                     </a>
@@ -366,17 +352,19 @@ export default function LiveStatus({ activeRun, onResetRun }) {
                 <div className="ls2-outcome-body">
                   <div className="ls2-outcome-head">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    Repair Execution Failed
+                    {backendOnline ? 'Repair Execution Failed' : 'Backend Offline'}
                   </div>
-                  <p className="ls2-outcome-desc">Test suite failed verification after patch was applied. Pytest exited with non-zero code.</p>
+                  <p className="ls2-outcome-desc">
+                    {backendOnline
+                      ? 'Test suite failed verification after patch was applied.'
+                      : 'Cannot reach the 4o4PR backend. Run: uvicorn app.main:app --reload from the backend directory.'}
+                  </p>
                   <div className="ls2-outcome-actions">
-                    <button className="ls2-btn-primary" onClick={startSimulation}>Retry Patch Run</button>
                     <button className="ls2-btn-outline" onClick={handleBack}>Modify Configuration</button>
                   </div>
                 </div>
               </div>
             )}
-
           </div>
         </div>
       </div>

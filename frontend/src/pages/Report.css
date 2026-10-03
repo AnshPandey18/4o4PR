@@ -495,3 +495,6 @@
   border-top: 1px solid rgba(255,255,255,.05);
   margin-left: 0; margin-right: 0;
 }
+
+/* ── LOADING SPINNER (used inline in Report) ── */
+@keyframes spin { to { transform: rotate(360deg); } }
