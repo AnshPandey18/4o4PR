@@ -3,6 +3,7 @@
 import ast
 import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -120,15 +121,14 @@ class BugDetector:
         """
         try:
             subprocess.run(
-                ["pytest", "--version"],
+                [sys.executable, "-m", "pytest", "--version"],
                 capture_output=True,
                 check=True,
                 timeout=5
             )
         except (subprocess.CalledProcessError, FileNotFoundError):
             raise PytestNotInstalledError(
-                "pytest is not installed or not available in PATH. "
-                "Install it with: pip install pytest"
+                "pytest is not installed. Install it with: pip install pytest"
             )
     
     def _run_pytest(
@@ -147,7 +147,7 @@ class BugDetector:
         Returns:
             Tuple of (exit_code, output_string)
         """
-        cmd = ["pytest", "-v", "--tb=short"]
+        cmd = [sys.executable, "-m", "pytest", "-v", "--tb=short"]
         
         # Add custom arguments if provided
         if pytest_args:

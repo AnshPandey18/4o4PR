@@ -1,0 +1,149 @@
+{
+  "attempt": 1,
+  "budget": {
+    "input": 10000,
+    "output_reserved": 1500,
+    "used": 4451
+  },
+  "bug_ids": [
+    "b_3d27458021e3",
+    "b_c283258e46bb",
+    "b_e6f0145b1e87"
+  ],
+  "dropped": [],
+  "group_id": "G2",
+  "included": [
+    {
+      "form": "verbatim",
+      "item": "system_rules",
+      "lines": null,
+      "reason": "required",
+      "tier": "T0",
+      "tokens": 986
+    },
+    {
+      "form": "verbatim",
+      "item": "evidence_b_3d27458021e3",
+      "lines": null,
+      "reason": "failure_evidence",
+      "tier": "T1",
+      "tokens": 143
+    },
+    {
+      "form": "verbatim",
+      "item": "evidence_b_c283258e46bb",
+      "lines": null,
+      "reason": "failure_evidence",
+      "tier": "T1",
+      "tokens": 143
+    },
+    {
+      "form": "verbatim",
+      "item": "evidence_b_e6f0145b1e87",
+      "lines": null,
+      "reason": "failure_evidence",
+      "tier": "T1",
+      "tokens": 143
+    },
+    {
+      "form": "full",
+      "item": "tests/test_string_utils.py::test_count_vowels",
+      "lines": null,
+      "reason": "test_function",
+      "tier": "T2",
+      "tokens": 68
+    },
+    {
+      "form": "full",
+      "item": "tests/test_string_utils.py::test_is_palindrome",
+      "lines": null,
+      "reason": "test_function",
+      "tier": "T2",
+      "tokens": 76
+    },
+    {
+      "form": "full",
+      "item": "tests/test_string_utils.py::test_reverse_string",
+      "lines": null,
+      "reason": "test_function",
+      "tier": "T2",
+      "tokens": 51
+    },
+    {
+      "form": "full",
+      "item": "src/string_utils.py::count_vowels",
+      "lines": "34-53",
+      "reason": "suspect_function",
+      "tier": "T3",
+      "tokens": 198
+    },
+    {
+      "form": "full",
+      "item": "src/string_utils.py::is_palindrome",
+      "lines": "56-70",
+      "reason": "suspect_function",
+      "tier": "T3",
+      "tokens": 184
+    },
+    {
+      "form": "full",
+      "item": "src/string_utils.py::reverse_string",
+      "lines": "8-19",
+      "reason": "suspect_function",
+      "tier": "T3",
+      "tokens": 110
+    },
+    {
+      "form": "signature",
+      "item": "tests/test_string_utils.py::test_count_vowels",
+      "lines": null,
+      "reason": "neighbor",
+      "tier": "T4",
+      "tokens": 21
+    },
+    {
+      "form": "signature",
+      "item": "tests/test_string_utils.py::test_is_palindrome",
+      "lines": null,
+      "reason": "neighbor",
+      "tier": "T4",
+      "tokens": 23
+    },
+    {
+      "form": "signature",
+      "item": "tests/test_string_utils.py::test_reverse_string",
+      "lines": null,
+      "reason": "neighbor",
+      "tier": "T4",
+      "tokens": 22
+    },
+    {
+      "form": "compressed",
+      "item": "file_tree_src",
+      "lines": null,
+      "reason": "repository_map",
+      "tier": "T5",
+      "tokens": 85
+    },
+    {
+      "form": "verbatim",
+      "item": "output_schema",
+      "lines": null,
+      "reason": "required",
+      "tier": "T6",
+      "tokens": 1929
+    }
+  ],
+  "prompt_version": "analysis_v1",
+  "retrieval": "evidence",
+  "run_id": "r_20261001_230613",
+  "sanitization": {
+    "comments_removed": 0,
+    "docstrings_removed": 3,
+    "secrets_redacted": 0
+  },
+  "stage": "analysis",
+  "status": "ok",
+  "token_method": "estimate",
+  "warnings": []
+}

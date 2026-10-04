@@ -1,0 +1,111 @@
+# 4o4PR Pipeline Configuration
+# This file defines settings for all pipeline stages
+
+# Project structure
+project_root: "."  # Relative to backend directory
+import_roots:
+  - "src"  # Where "import calculator" resolves from
+
+test_dirs:
+  - "tests"
+
+# Directories and patterns to exclude from indexing and analysis
+exclude_dirs:
+  - "__pycache__"
+  - ".git"
+  - ".venv"
+  - "venv"
+  - "env"
+  - "node_modules"
+  - "build"
+  - "dist"
+  - "runs"
+  - "cache"
+  - ".pytest_cache"
+  - ".mypy_cache"
+  - ".tox"
+  - "*.egg-info"
+
+# Bug Detector settings
+detector:
+  timeout_seconds: 300  # 5 minutes max for pytest execution
+  flaky_reruns: 2  # Number of times to rerun a failing test to detect flakiness
+  embed_source_snapshot: true  # Include source code snapshot in bug report
+  snapshot_max_lines: 80  # Maximum lines per source snapshot
+
+# Bug Grouper settings
+grouper:
+  max_bugs_per_group: 8  # Maximum bugs in a single group before splitting
+
+# Context Builder settings
+context:
+  # Token budgets for analysis context
+  analysis:
+    input_budget: 10000  # Total tokens available for input
+    output_reserved: 1500  # Tokens reserved for model output
+  
+  # Token budgets for fix context (future use)
+  fix:
+    input_budget: 12000
+    output_reserved: 2000
+  
+  # Token counter method: "estimate" (default) or "tiktoken"
+  # estimate: Fast character-based estimate with 15% safety margin
+  # tiktoken: Accurate but requires tiktoken package (pip install tiktoken)
+  token_counter: "estimate"
+  
+  # Model for tiktoken (if using tiktoken counter)
+  tiktoken_model: "gpt-4"
+  
+  # Tier budget percentages (soft caps)
+  tier_budgets:
+    T1_evidence: 0.20  # 20% for failure evidence
+    T2_tests: 0.20     # 20% for test code
+    T3_suspects: 0.30  # 30% for suspect functions
+    T4_neighbors: 0.20 # 20% for callers/callees
+    T5_repo_map: 0.10  # 10% for repository map
+  
+  # Source code redaction patterns (security)
+  redact_patterns:
+    - "AKIA[0-9A-Z]{16}"  # AWS access keys
+    - "sk-[A-Za-z0-9]{20,}"  # API keys
+    - "-----BEGIN [A-Z]+ PRIVATE KEY-----"  # PEM private keys
+  
+  # Files to never include in context
+  denylist_files:
+    - ".env"
+    - ".env.*"
+    - "*.pem"
+    - "*.key"
+    - "*secret*"
+    - "*credentials*"
+    - "id_rsa*"
+
+# Run management
+runs:
+  # Run ID format: r_YYYYMMDD_HHMMSS
+  base_dir: "runs"
+  # Keep last N runs (0 = keep all)
+  max_runs_to_keep: 50
+
+# Cache management
+cache:
+  base_dir: "cache"
+  # Enable index caching (reuse index if content hasn't changed)
+  enable_index_cache: true
+  # Maximum cache age in days (0 = no expiration)
+  max_age_days: 30
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: null  # Set to a path to enable file logging
+
+# Schema versions (do not modify unless you know what you're doing)
+schema_versions:
+  index: "1.0"
+  bug_report: "2.0"
+  bug_groups: "1.0"
+  context_manifest: "1.0"
+  baseline_results: "1.0"

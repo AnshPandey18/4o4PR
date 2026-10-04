@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MOCK_REPOSITORIES, MOCK_BUGS, MOCK_REPO_STATS } from '../data/mockPipeline';
+import { MOCK_BUGS, MOCK_REPO_STATS } from '../data/mockPipeline';
+import { startRun, startDemoRun } from '../services/api';
 import './TriggerRun.css';
 
+/* ─── constants ─────────────────────────────────────────────────────────── */
 const PIPELINE_STEPS = [
   { n: '01', title: 'Environment Sync',     desc: 'Cloning repository and installing all dependencies.' },
   { n: '02', title: 'Failure Reproduction', desc: 'Executing specified test to capture stack trace logs.' },
   { n: '03', title: 'Trace Analysis',       desc: 'Mapping stack trace to source code segments.' },
-  { n: '04', title: 'Patch Generation',     desc: 'Synthesizing candidate code fixes via LLM.' },
+  { n: '04', title: 'Patch Generation',     desc: 'Synthesising candidate code fixes via LLM.' },
   { n: '05', title: 'Verification Run',     desc: 'Testing proposed patches against the full suite.' },
   { n: '06', title: 'Pull Request Staging', desc: 'Finalising documentation and PR metadata.' },
 ];
@@ -19,42 +21,70 @@ const RUNTIME_SETTINGS = [
   { key: 'CONCURRENCY',  val: 'ENABLED' },
 ];
 
+const DEMO_REPO_STATS = {
+  healthIndex: '82%',
+  coverage: '61.5%',
+  activeTests: '11',
+  prSuccessRate: '—',
+  avgRepairTime: '~3s',
+  activeBranch: 'main',
+  status: 'Warning',
+};
+
+/* ─── component ─────────────────────────────────────────────────────────── */
 export default function TriggerRun({ onStartRun }) {
-  const [selectedRepo, setSelectedRepo] = useState(MOCK_REPOSITORIES[0]);
+  const [sourceMode,   setSourceMode]   = useState('demo');   // 'demo' | 'github'
   const [selectedBug,  setSelectedBug]  = useState(MOCK_BUGS[0].id);
-  const [shouldFail,   setShouldFail]   = useState(false);
   const [launching,    setLaunching]    = useState(false);
-  const [repoKey,      setRepoKey]      = useState(0);
+  const [error,        setError]        = useState(null);
   const navigate = useNavigate();
   const pageRef  = useRef(null);
 
-  const repoStats = MOCK_REPO_STATS[selectedRepo] || {};
-  const activeBug = MOCK_BUGS.find(b => b.id === selectedBug) || MOCK_BUGS[0];
+  const activeBug  = MOCK_BUGS.find(b => b.id === selectedBug) || MOCK_BUGS[0];
+  const repoStats  = sourceMode === 'demo' ? DEMO_REPO_STATS : (MOCK_REPO_STATS['AnshPandey18/4o4PR'] || {});
+  const sevColor   = { High: '#e6714f', Medium: '#ffb764', Low: '#20c2a4' }[activeBug.severity] || '#888';
 
-  const handleRepoChange = e => { setSelectedRepo(e.target.value); setRepoKey(k => k + 1); };
-
-  const handleSubmit = e => {
+  /* ─── submit ─────────────────────────────────────────────────────────── */
+  const handleSubmit = async e => {
     if (e) e.preventDefault();
+    setError(null);
     setLaunching(true);
-    setTimeout(() => {
-      onStartRun({ repo: selectedRepo, bug: activeBug.title, shouldFail });
+    try {
+      let runData;
+      if (sourceMode === 'demo') {
+        // Run the real CLI pipeline on tests/fixtures/sample_bugs
+        runData = await startDemoRun();
+      } else {
+        runData = await startRun({
+          repo: 'AnshPandey18/4o4PR',
+          bug: activeBug.title,
+          branch: 'main',
+        });
+      }
+      onStartRun({
+        repo: sourceMode === 'demo' ? 'demo/sample_bugs' : 'AnshPandey18/4o4PR',
+        bug:  sourceMode === 'demo'
+          ? 'Demo: sample_bugs fixture (calculator + string_utils)'
+          : activeBug.title,
+        runId: runData.id,
+      });
       navigate('/status');
-    }, 700);
+    } catch (err) {
+      setError(err.message || 'Failed to start run. Is the backend running?');
+      setLaunching(false);
+    }
   };
 
   useEffect(() => {
     const h = e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') handleSubmit(); };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, [selectedRepo, selectedBug, shouldFail]);
+  }, [sourceMode, selectedBug]);
 
-  const sevColor = { High: '#e6714f', Medium: '#ffb764', Low: '#20c2a4' }[activeBug.severity] || '#888';
-
+  /* ─── render ─────────────────────────────────────────────────────────── */
   return (
     <div className="tr2-page" ref={pageRef}>
-      {/* terminal grid overlay */}
       <div className="tr2-grid-overlay" />
-
       <div className="tr2-wrap">
 
         {/* ── HERO ── */}
@@ -68,15 +98,14 @@ export default function TriggerRun({ onStartRun }) {
             <em className="tr2-headline-em">Patch Sequence</em>
           </h1>
           <p className="tr2-hero-sub">
-            Connect your repository and specify the failing test. 4o4PR will analyse the stack
-            trace, reproduce the environment, and propose a verified resolution.
+            Point 4o4PR at a repository or use the built-in demo fixtures — it will
+            analyse failing tests, reproduce the environment, and propose a verified
+            resolution.
           </p>
         </section>
 
         {/* ── MAIN GRID ── */}
         <div className="tr2-main-grid">
-
-          {/* ── LEFT: FORM ── */}
           <div className="tr2-left">
             <div className="tr2-card">
               <div className="tr2-card-heading">
@@ -86,102 +115,123 @@ export default function TriggerRun({ onStartRun }) {
 
               <form onSubmit={handleSubmit} className="tr2-form">
 
-                {/* two-col row */}
-                <div className="tr2-row-2">
-                  <div className="tr2-field">
-                    <label className="tr2-label">Github Repo URL</label>
-                    <div className="tr2-select-wrap">
-                      <select
-                        className="tr2-select"
-                        value={selectedRepo}
-                        onChange={handleRepoChange}
-                      >
-                        {MOCK_REPOSITORIES.map(r => (
-                          <option key={r} value={r}>{r}</option>
-                        ))}
-                      </select>
-                      <span className="tr2-chevron">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                      </span>
+                {/* ── source mode tabs ── */}
+                <div className="tr2-source-tabs">
+                  <button
+                    type="button"
+                    className={`tr2-source-tab ${sourceMode === 'demo' ? 'tr2-source-tab-active' : ''}`}
+                    onClick={() => setSourceMode('demo')}
+                  >
+                    {/* flask / beaker icon */}
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 3h6M9 3v8l-4 9h14l-4-9V3"/>
+                    </svg>
+                    Demo (Fixtures)
+                  </button>
+                  <button
+                    type="button"
+                    className={`tr2-source-tab ${sourceMode === 'github' ? 'tr2-source-tab-active' : ''}`}
+                    onClick={() => setSourceMode('github')}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+                    </svg>
+                    GitHub Repo
+                  </button>
+                </div>
+
+                {/* ── demo mode info strip ── */}
+                {sourceMode === 'demo' && (
+                  <div className="tr2-demo-strip">
+                    <div className="tr2-demo-strip-head">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                      </svg>
+                      Demo Mode
                     </div>
-                  </div>
-
-                  <div className="tr2-field">
-                    <label className="tr2-label">Branch</label>
-                    <div className="tr2-select-wrap">
-                      <select className="tr2-select">
-                        <option>{repoStats.activeBranch || 'main'}</option>
-                        <option>develop</option>
-                        <option>staging</option>
-                      </select>
-                      <span className="tr2-chevron">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                      </span>
+                    <div className="tr2-demo-paths">
+                      <div className="tr2-demo-path-row">
+                        <span className="tr2-demo-path-lbl">Input (faulty code)</span>
+                        <code className="tr2-demo-path-val">backend/tests/fixtures/sample_bugs</code>
+                      </div>
+                      <div className="tr2-demo-path-row">
+                        <span className="tr2-demo-path-lbl">Output</span>
+                        <code className="tr2-demo-path-val">backend/runs/</code>
+                      </div>
+                      <div className="tr2-demo-path-row">
+                        <span className="tr2-demo-path-lbl">Command</span>
+                        <code className="tr2-demo-path-val tr2-demo-cmd">
+                          python run_pipeline.py --root tests/fixtures/sample_bugs --import-root src --verbose
+                        </code>
+                      </div>
                     </div>
+                    <p className="tr2-demo-note">
+                      The fixture contains <strong>6 intentional bugs</strong> across
+                      <code>src/calculator.py</code> and <code>src/string_utils.py</code>.
+                      Running the pipeline will detect them, group them, build LLM context,
+                      and write the full report to <code>backend/runs/</code>.
+                    </p>
                   </div>
-                </div>
+                )}
 
-                {/* failing test */}
-                <div className="tr2-field">
-                  <label className="tr2-label">Failing Test Path</label>
-                  <div className="tr2-select-wrap">
-                    <select
-                      className="tr2-select"
-                      value={selectedBug}
-                      onChange={e => setSelectedBug(e.target.value)}
-                    >
-                      {MOCK_BUGS.map(b => (
-                        <option key={b.id} value={b.id}>{b.title}</option>
-                      ))}
-                    </select>
-                    <span className="tr2-chevron">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                    </span>
-                  </div>
-                </div>
+                {/* ── github mode fields ── */}
+                {sourceMode === 'github' && (
+                  <>
+                    <div className="tr2-field">
+                      <label className="tr2-label">Failing Test</label>
+                      <div className="tr2-select-wrap">
+                        <select
+                          className="tr2-select"
+                          value={selectedBug}
+                          onChange={e => setSelectedBug(e.target.value)}
+                        >
+                          {MOCK_BUGS.map(b => (
+                            <option key={b.id} value={b.id}>{b.title}</option>
+                          ))}
+                        </select>
+                        <span className="tr2-chevron">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        </span>
+                      </div>
+                    </div>
 
-                {/* bug description */}
-                <div className="tr2-field">
-                  <label className="tr2-label">Bug Description (Optional)</label>
-                  <textarea
-                    className="tr2-textarea"
-                    rows={4}
-                    placeholder="Describe the expected vs actual behaviour…"
-                  />
-                </div>
+                    <div className="tr2-field">
+                      <label className="tr2-label">Bug Description (Optional)</label>
+                      <textarea
+                        className="tr2-textarea"
+                        rows={4}
+                        placeholder="Describe the expected vs actual behaviour…"
+                      />
+                    </div>
 
-                {/* diagnostics strip */}
-                <div className="tr2-diag" key={activeBug.id} style={{ '--sev-color': sevColor }}>
-                  <div className="tr2-diag-header">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                    Static Code Diagnostics
-                  </div>
-                  <div className="tr2-diag-badges">
-                    <span className={`tr2-badge tr2-sev-${activeBug.severity.toLowerCase()}`}>Severity: {activeBug.severity}</span>
-                    <span className={`tr2-badge tr2-comp-${activeBug.complexity.toLowerCase()}`}>Complexity: {activeBug.complexity}</span>
-                    <span className="tr2-badge tr2-badge-mono">Est. {activeBug.eta}</span>
-                  </div>
-                  <p className="tr2-diag-impact">
-                    <span className="tr2-diag-impact-lbl">Remediation Impact</span>
-                    {activeBug.impact}
-                  </p>
-                </div>
+                    {/* diagnostics strip */}
+                    <div className="tr2-diag" key={activeBug.id} style={{ '--sev-color': sevColor }}>
+                      <div className="tr2-diag-header">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        Static Code Diagnostics
+                      </div>
+                      <div className="tr2-diag-badges">
+                        <span className={`tr2-badge tr2-sev-${activeBug.severity.toLowerCase()}`}>Severity: {activeBug.severity}</span>
+                        <span className={`tr2-badge tr2-comp-${activeBug.complexity.toLowerCase()}`}>Complexity: {activeBug.complexity}</span>
+                        <span className="tr2-badge tr2-badge-mono">Est. {activeBug.eta}</span>
+                      </div>
+                      <p className="tr2-diag-impact">
+                        <span className="tr2-diag-impact-lbl">Remediation Impact</span>
+                        {activeBug.impact}
+                      </p>
+                    </div>
+                  </>
+                )}
 
-                {/* failure toggle */}
-                <label className={`tr2-toggle ${shouldFail ? 'tr2-toggle-on' : ''}`} htmlFor="fail-toggle">
-                  <div className="tr2-toggle-info">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    <span className="tr2-toggle-lbl">Simulate patch test failure</span>
-                    <span className="tr2-toggle-sub">Verify error states in pipeline</span>
+                {/* ── error banner ── */}
+                {error && (
+                  <div className="tr2-error-banner">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    {error}
                   </div>
-                  <div className="tr2-switch">
-                    <input type="checkbox" id="fail-toggle" className="tr2-switch-input"
-                      checked={shouldFail} onChange={e => setShouldFail(e.target.checked)} />
-                    <div className="tr2-switch-thumb" />
-                  </div>
-                </label>
+                )}
 
-                {/* actions */}
+                {/* ── actions ── */}
                 <div className="tr2-actions">
                   <button type="submit" className="tr2-btn-primary" disabled={launching}>
                     {launching ? (
@@ -189,7 +239,7 @@ export default function TriggerRun({ onStartRun }) {
                     ) : (
                       <>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                        Run Pipeline
+                        {sourceMode === 'demo' ? 'Run Demo Pipeline' : 'Run Pipeline'}
                       </>
                     )}
                   </button>
@@ -201,10 +251,8 @@ export default function TriggerRun({ onStartRun }) {
             </div>
           </div>
 
-          {/* ── RIGHT: PIPELINE + SETTINGS + REPO STATS ── */}
+          {/* ── RIGHT: pipeline + repo stats + runtime ── */}
           <div className="tr2-right">
-
-            {/* pipeline card */}
             <div className="tr2-card tr2-card-teal">
               <div className="tr2-card-heading">
                 <span className="tr2-card-dot" />
@@ -223,11 +271,12 @@ export default function TriggerRun({ onStartRun }) {
               </ul>
             </div>
 
-            {/* repo stats */}
-            <div className="tr2-card tr2-card-blush" key={repoKey}>
+            <div className="tr2-card tr2-card-blush">
               <div className="tr2-card-heading">
                 <span className="tr2-card-dot" />
-                <h2 className="tr2-card-title">Repository Profile</h2>
+                <h2 className="tr2-card-title">
+                  {sourceMode === 'demo' ? 'Demo Fixture Profile' : 'Repository Profile'}
+                </h2>
                 <span className={`tr2-status-pill ${repoStats.status === 'Healthy' ? 'pill-ok' : 'pill-warn'}`}>
                   <span className="tr2-status-dot" />{repoStats.status}
                 </span>
@@ -242,7 +291,6 @@ export default function TriggerRun({ onStartRun }) {
               </div>
             </div>
 
-            {/* runtime settings */}
             <div className="tr2-card">
               <div className="tr2-card-heading">
                 <span className="tr2-card-dot" />
@@ -258,7 +306,6 @@ export default function TriggerRun({ onStartRun }) {
               </div>
               <button className="tr2-settings-link">Modify Infrastructure Config →</button>
             </div>
-
           </div>
         </div>
       </div>

@@ -1,0 +1,333 @@
+{
+  "bugs": [
+    {
+      "bug_id": "b_056a5081c629",
+      "called_symbols": [
+        {
+          "file": "src/calculator.py",
+          "line_end": 33,
+          "line_start": 21,
+          "name": "subtract",
+          "resolution": "resolved",
+          "source_snapshot": "def subtract(a, b):\n    \"\"\"Subtract b from a.\n    \n    BUG: Returns a + b instead of a - b\n    \n    Args:\n        a: First number\n        b: Second number\n        \n    Returns:\n        Difference of a and b\n    \"\"\"\n    return a + b  # BUG: Should be a - b",
+          "symbol_id": "src/calculator.py::subtract"
+        }
+      ],
+      "captured_output": {
+        "stderr": "",
+        "stdout": ""
+      },
+      "code": "def test_subtract():\n    \"\"\"Test subtraction - this should FAIL.\"\"\"\n    assert subtract(5, 3) == 2\n    assert subtract(10, 4) == 6\n    assert subtract(0, 5) == -5",
+      "error_message": "assert 8 == 2\n +  where 8 = subtract(5, 3)",
+      "error_type": "Error",
+      "failure_kind": "assertion",
+      "first_failing_assertion": {
+        "actual": "8",
+        "assert_total": 3,
+        "assertion_index": 1,
+        "assertions_not_evaluated": 2,
+        "expected": "2",
+        "line": 25,
+        "operator": "==",
+        "statement": "assert subtract(5, 3) == 2"
+      },
+      "flaky": false,
+      "frames": [
+        {
+          "code_line": "assert subtract(5, 3) == 2E   assert 8 == 2E    +  where 8 = subtract(5, 3)",
+          "external": false,
+          "file": "tests/test_calculator.py",
+          "function": "",
+          "line": 25
+        }
+      ],
+      "inferred_source_module": "src/calculator.py",
+      "location": {
+        "file_path": "tests/test_calculator.py",
+        "function": "",
+        "line_number": 25
+      },
+      "rerun_command": "pytest \"tests/test_calculator.py::test_subtract\"",
+      "test_name": "tests/test_calculator.py::test_subtract",
+      "traceback": "Traceback (most recent call last):\n  File \"tests/test_calculator.py\", line 25, in \n    assert subtract(5, 3) == 2E   assert 8 == 2E    +  where 8 = subtract(5, 3)\nError: assert 8 == 2\n +  where 8 = subtract(5, 3)"
+    },
+    {
+      "bug_id": "b_54e477c51122",
+      "called_symbols": [
+        {
+          "file": "src/calculator.py",
+          "line_end": 66,
+          "line_start": 49,
+          "name": "divide",
+          "resolution": "resolved",
+          "source_snapshot": "def divide(a, b):\n    \"\"\"Divide a by b.\n    \n    BUG: Returns b / a instead of a / b\n    \n    Args:\n        a: Numerator\n        b: Denominator\n        \n    Returns:\n        Quotient of a divided by b\n        \n    Raises:\n        ZeroDivisionError: If b is zero\n    \"\"\"\n    if b == 0:\n        raise ZeroDivisionError(\"Cannot divide by zero\")\n    return b / a  # BUG: Should be a / b",
+          "symbol_id": "src/calculator.py::divide"
+        }
+      ],
+      "captured_output": {
+        "stderr": "",
+        "stdout": ""
+      },
+      "code": "def test_divide():\n    \"\"\"Test division - this should FAIL.\"\"\"\n    assert divide(10, 2) == 5\n    assert divide(9, 3) == 3\n    assert divide(7, 2) == 3.5",
+      "error_message": "assert 0.2 == 5\n +  where 0.2 = divide(10, 2)",
+      "error_type": "Error",
+      "failure_kind": "assertion",
+      "first_failing_assertion": {
+        "actual": "0.2",
+        "assert_total": 3,
+        "assertion_index": 1,
+        "assertions_not_evaluated": 2,
+        "expected": "5",
+        "line": 39,
+        "operator": "==",
+        "statement": "assert divide(10, 2) == 5"
+      },
+      "flaky": false,
+      "frames": [
+        {
+          "code_line": "assert divide(10, 2) == 5E   assert 0.2 == 5E    +  where 0.2 = divide(10, 2)",
+          "external": false,
+          "file": "tests/test_calculator.py",
+          "function": "",
+          "line": 39
+        }
+      ],
+      "inferred_source_module": "src/calculator.py",
+      "location": {
+        "file_path": "tests/test_calculator.py",
+        "function": "",
+        "line_number": 39
+      },
+      "rerun_command": "pytest \"tests/test_calculator.py::test_divide\"",
+      "test_name": "tests/test_calculator.py::test_divide",
+      "traceback": "Traceback (most recent call last):\n  File \"tests/test_calculator.py\", line 39, in \n    assert divide(10, 2) == 5E   assert 0.2 == 5E    +  where 0.2 = divide(10, 2)\nError: assert 0.2 == 5\n +  where 0.2 = divide(10, 2)"
+    },
+    {
+      "bug_id": "b_bd675980c5ec",
+      "called_symbols": [
+        {
+          "file": "src/calculator.py",
+          "line_end": 99,
+          "line_start": 82,
+          "name": "modulo",
+          "resolution": "resolved",
+          "source_snapshot": "def modulo(a, b):\n    \"\"\"Calculate a modulo b.\n    \n    BUG: Returns a % (b - 1) instead of a % b\n    \n    Args:\n        a: Dividend\n        b: Divisor\n        \n    Returns:\n        Remainder of a divided by b\n        \n    Raises:\n        ZeroDivisionError: If b is zero\n    \"\"\"\n    if b == 0:\n        raise ZeroDivisionError(\"Cannot modulo by zero\")\n    return a % (b - 1)  # BUG: Should be a % b",
+          "symbol_id": "src/calculator.py::modulo"
+        }
+      ],
+      "captured_output": {
+        "stderr": "",
+        "stdout": ""
+      },
+      "code": "def test_modulo():\n    \"\"\"Test modulo operation - this should FAIL.\"\"\"\n    assert modulo(10, 3) == 1\n    assert modulo(15, 4) == 3\n    assert modulo(7, 5) == 2",
+      "error_message": "assert 0 == 1\n +  where 0 = modulo(10, 3)",
+      "error_type": "Error",
+      "failure_kind": "assertion",
+      "first_failing_assertion": {
+        "actual": "0",
+        "assert_total": 3,
+        "assertion_index": 1,
+        "assertions_not_evaluated": 2,
+        "expected": "1",
+        "line": 62,
+        "operator": "==",
+        "statement": "assert modulo(10, 3) == 1"
+      },
+      "flaky": false,
+      "frames": [
+        {
+          "code_line": "assert modulo(10, 3) == 1E   assert 0 == 1E    +  where 0 = modulo(10, 3)",
+          "external": false,
+          "file": "tests/test_calculator.py",
+          "function": "",
+          "line": 62
+        }
+      ],
+      "inferred_source_module": "src/calculator.py",
+      "location": {
+        "file_path": "tests/test_calculator.py",
+        "function": "",
+        "line_number": 62
+      },
+      "rerun_command": "pytest \"tests/test_calculator.py::test_modulo\"",
+      "test_name": "tests/test_calculator.py::test_modulo",
+      "traceback": "Traceback (most recent call last):\n  File \"tests/test_calculator.py\", line 62, in \n    assert modulo(10, 3) == 1E   assert 0 == 1E    +  where 0 = modulo(10, 3)\nError: assert 0 == 1\n +  where 0 = modulo(10, 3)"
+    },
+    {
+      "bug_id": "b_e6f0145b1e87",
+      "called_symbols": [
+        {
+          "file": "src/string_utils.py",
+          "line_end": 19,
+          "line_start": 8,
+          "name": "reverse_string",
+          "resolution": "resolved",
+          "source_snapshot": "def reverse_string(s):\n    \"\"\"Reverse a string.\n    \n    BUG: Returns the string unchanged instead of reversed\n    \n    Args:\n        s: String to reverse\n        \n    Returns:\n        Reversed string\n    \"\"\"\n    return s  # BUG: Should be s[::-1]",
+          "symbol_id": "src/string_utils.py::reverse_string"
+        }
+      ],
+      "captured_output": {
+        "stderr": "",
+        "stdout": ""
+      },
+      "code": "def test_reverse_string():\n    \"\"\"Test string reversal - this should FAIL.\"\"\"\n    assert reverse_string(\"hello\") == \"olleh\"\n    assert reverse_string(\"world\") == \"dlrow\"\n    assert reverse_string(\"\") == \"\"",
+      "error_message": "assert 'hello' == 'olleh'\n  \n  - olleh\n  + hello",
+      "error_type": "AssertionError",
+      "failure_kind": "assertion",
+      "first_failing_assertion": {
+        "actual": "'hello'",
+        "assert_total": 3,
+        "assertion_index": 1,
+        "assertions_not_evaluated": 2,
+        "expected": "'olleh'",
+        "line": 18,
+        "operator": "==",
+        "statement": "assert reverse_string(\"hello\") == \"olleh\""
+      },
+      "flaky": false,
+      "frames": [
+        {
+          "code_line": "assert reverse_string(\"hello\") == \"olleh\"E   AssertionError: assert 'hello' == 'olleh'E     E     - ollehE     + hello",
+          "external": false,
+          "file": "tests/test_string_utils.py",
+          "function": "",
+          "line": 18
+        }
+      ],
+      "inferred_source_module": "src/string_utils.py",
+      "location": {
+        "file_path": "tests/test_string_utils.py",
+        "function": "",
+        "line_number": 18
+      },
+      "rerun_command": "pytest \"tests/test_string_utils.py::test_reverse_string\"",
+      "test_name": "tests/test_string_utils.py::test_reverse_string",
+      "traceback": "Traceback (most recent call last):\n  File \"tests/test_string_utils.py\", line 18, in \n    assert reverse_string(\"hello\") == \"olleh\"E   AssertionError: assert 'hello' == 'olleh'E     E     - ollehE     + hello\nAssertionError: assert 'hello' == 'olleh'\n  \n  - olleh\n  + hello"
+    },
+    {
+      "bug_id": "b_3d27458021e3",
+      "called_symbols": [
+        {
+          "file": "src/string_utils.py",
+          "line_end": 53,
+          "line_start": 34,
+          "name": "count_vowels",
+          "resolution": "resolved",
+          "source_snapshot": "def count_vowels(s):\n    \"\"\"Count the number of vowels in a string.\n    \n    BUG: Counts 'e' twice (both lowercase and uppercase)\n    \n    Args:\n        s: String to analyze\n        \n    Returns:\n        Number of vowels in the string\n    \"\"\"\n    vowels = 'aeiouAEIOU'\n    count = 0\n    for char in s:\n        if char in vowels:\n            count += 1\n        # BUG: Extra count for 'e' and 'E'\n        if char in 'eE':\n            count += 1\n    return count",
+          "symbol_id": "src/string_utils.py::count_vowels"
+        }
+      ],
+      "captured_output": {
+        "stderr": "",
+        "stdout": ""
+      },
+      "code": "def test_count_vowels():\n    \"\"\"Test vowel counting - this should FAIL.\"\"\"\n    assert count_vowels(\"hello\") == 2  # e, o\n    assert count_vowels(\"AEIOU\") == 5\n    assert count_vowels(\"xyz\") == 0\n    assert count_vowels(\"beautiful\") == 5  # e, a, u, i, u",
+      "error_message": "assert 3 == 2\n +  where 3 = count_vowels('hello')",
+      "error_type": "AssertionError",
+      "failure_kind": "assertion",
+      "first_failing_assertion": {
+        "actual": "3",
+        "assert_total": 4,
+        "assertion_index": 1,
+        "assertions_not_evaluated": 3,
+        "expected": "2",
+        "line": 32,
+        "operator": "==",
+        "statement": "assert count_vowels(\"hello\") == 2  # e, o"
+      },
+      "flaky": false,
+      "frames": [
+        {
+          "code_line": "assert count_vowels(\"hello\") == 2  # e, o    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^E   AssertionError: assert 3 == 2E    +  where 3 = count_vowels('hello')",
+          "external": false,
+          "file": "tests/test_string_utils.py",
+          "function": "",
+          "line": 32
+        }
+      ],
+      "inferred_source_module": "src/string_utils.py",
+      "location": {
+        "file_path": "tests/test_string_utils.py",
+        "function": "",
+        "line_number": 32
+      },
+      "rerun_command": "pytest \"tests/test_string_utils.py::test_count_vowels\"",
+      "test_name": "tests/test_string_utils.py::test_count_vowels",
+      "traceback": "Traceback (most recent call last):\n  File \"tests/test_string_utils.py\", line 32, in \n    assert count_vowels(\"hello\") == 2  # e, o    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^E   AssertionError: assert 3 == 2E    +  where 3 = count_vowels('hello')\nAssertionError: assert 3 == 2\n +  where 3 = count_vowels('hello')"
+    },
+    {
+      "bug_id": "b_c283258e46bb",
+      "called_symbols": [
+        {
+          "file": "src/string_utils.py",
+          "line_end": 70,
+          "line_start": 56,
+          "name": "is_palindrome",
+          "resolution": "resolved",
+          "source_snapshot": "def is_palindrome(s):\n    \"\"\"Check if a string is a palindrome (ignoring case and spaces).\n    \n    BUG: Doesn't ignore spaces, and comparison logic is reversed\n    \n    Args:\n        s: String to check\n        \n    Returns:\n        True if string is a palindrome, False otherwise\n    \"\"\"\n    # BUG: Should remove spaces: s = s.replace(' ', '')\n    s_lower = s.lower()\n    # BUG: Comparison is reversed (should be ==)\n    return s_lower != s_lower[::-1]",
+          "symbol_id": "src/string_utils.py::is_palindrome"
+        }
+      ],
+      "captured_output": {
+        "stderr": "",
+        "stdout": ""
+      },
+      "code": "def test_is_palindrome():\n    \"\"\"Test palindrome detection - this should FAIL.\"\"\"\n    assert is_palindrome(\"racecar\") == True\n    assert is_palindrome(\"hello\") == False\n    assert is_palindrome(\"A man a plan a canal Panama\") == True\n    assert is_palindrome(\"not a palindrome\") == False",
+      "error_message": "assert False == True\n +  where False = is_palindrome('racecar')",
+      "error_type": "AssertionError",
+      "failure_kind": "assertion",
+      "first_failing_assertion": {
+        "actual": "False",
+        "assert_total": 4,
+        "assertion_index": 1,
+        "assertions_not_evaluated": 3,
+        "expected": "True",
+        "line": 40,
+        "operator": "==",
+        "statement": "assert is_palindrome(\"racecar\") == True"
+      },
+      "flaky": false,
+      "frames": [
+        {
+          "code_line": "assert is_palindrome(\"racecar\") == TrueE   AssertionError: assert False == TrueE    +  where False = is_palindrome('racecar')",
+          "external": false,
+          "file": "tests/test_string_utils.py",
+          "function": "",
+          "line": 40
+        }
+      ],
+      "inferred_source_module": "src/string_utils.py",
+      "location": {
+        "file_path": "tests/test_string_utils.py",
+        "function": "",
+        "line_number": 40
+      },
+      "rerun_command": "pytest \"tests/test_string_utils.py::test_is_palindrome\"",
+      "test_name": "tests/test_string_utils.py::test_is_palindrome",
+      "traceback": "Traceback (most recent call last):\n  File \"tests/test_string_utils.py\", line 40, in \n    assert is_palindrome(\"racecar\") == TrueE   AssertionError: assert False == TrueE    +  where False = is_palindrome('racecar')\nAssertionError: assert False == True\n +  where False = is_palindrome('racecar')"
+    }
+  ],
+  "project": {
+    "content_hash": "978153f87c69ad83e911e5030fc4ae08e30adbcfa28f4ea7011683fac41239a5",
+    "pytest_version": "9.1.1",
+    "python_version": "3.13.11",
+    "root": "."
+  },
+  "run_id": "r_20261001_230613",
+  "schema_version": "2.0",
+  "summary": {
+    "bugs_detected": 6,
+    "consistency_ok": true,
+    "duration_seconds": 0.328885555267334,
+    "errors": 0,
+    "failed": 6,
+    "passed": 5,
+    "pytest_exit_code": 1,
+    "skipped": 0,
+    "tests_run": 11,
+    "xfailed": 0,
+    "xpassed": 0
+  },
+  "timestamp": "2026-10-01T17:36:33.411916Z",
+  "validation_hint": "Validate patches by re-running the full test node IDs, not just the failing assertion"
+}
