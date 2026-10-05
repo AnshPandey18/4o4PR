@@ -13,11 +13,18 @@ from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
+from .config import settings
+from .database import engine, Base
+from .api import auth, users
+
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.agents import BugDetector
 from app.models import BugReport, BugDetectionResult
+from .models import User, Repository
+
+
 
 # ── Directory layout ──────────────────────────────────────────────────────────
 BACKEND_DIR   = Path(__file__).parent.parent          # backend/
@@ -57,17 +64,47 @@ class RunSummary(BaseModel):
     # enriched fields populated from real run output
     run_dir: Optional[str] = None    # relative path inside backend/runs/
 
+# Create database tables
+Base.metadata.create_all(bind=engine)
 
 # ── FastAPI app ───────────────────────────────────────────────────────────────
-app = FastAPI(title="4o4PR API", version="1.0.0")
 
+# Create FastAPI app
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    debug=settings.DEBUG,
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
+# CORS middleware (allow React frontend)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Include routers
+app.include_router(auth.router)
+app.include_router(users.router)
+
+# Root endpoint
+@app.get("/")
+def root():
+    """Root endpoint."""
+    return {
+        "message": "Welcome to 4o4PR API",
+        "docs": "/docs",
+        "health": "/api/health"
+    }
+
+# Health check
+@app.get("/api/health")
+def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy"}
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def _add_log(run_id: str, line: str) -> None:
@@ -457,10 +494,6 @@ async def _sse_generator(run_id: str):
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
-@app.get("/api/health")
-async def health():
-    return {"status": "ok", "service": "4o4PR API"}
-
 
 @app.post("/api/runs", response_model=RunSummary)
 async def start_run(request: StartRunRequest, background_tasks: BackgroundTasks):

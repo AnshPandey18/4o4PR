@@ -7,8 +7,10 @@ import TriggerRun from './pages/TriggerRun';
 import LiveStatus from './pages/LiveStatus';
 import Report from './pages/Report';
 import RunResult from './pages/RunResult';
+import Dashboard from './pages/Dashboard';
 import NavPill from './components/NavPill';
 import HistorySidebar from './components/HistorySidebar';
+import authService from './services/authService';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -52,6 +54,12 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/signup" element={<Signup onLogin={handleLogin} />} />
+          
+          {/* Dashboard route */}
+          <Route 
+            path="/dashboard" 
+            element={user ? <Dashboard /> : <Navigate to="/login" replace />} 
+          />
           
           <Route 
             path="/run" 
