@@ -240,12 +240,12 @@
       "sha1": "227cbab9414e791d58e8e10e8a4bf5fae95d26ba"
     }
   },
-  "generated_at": "2026-10-05T15:13:07.373231Z",
+  "generated_at": "2026-10-05T15:23:10.905344Z",
   "import_roots": [
     "src"
   ],
   "parse_errors": [],
-  "run_id": "r_20261005_204307",
+  "run_id": "r_20261005_205310",
   "schema_version": "1.0",
   "symbols": {
     "src/calculator.py::add": {

@@ -1,0 +1,20 @@
+{
+  "duration_seconds": 0.06671714782714844,
+  "project_content_hash": "008ac7698522711b4943c05ebd3de8b6bd8e6ba3d0ed632385978a59ba57a9e0",
+  "pytest_exit_code": 1,
+  "results": {
+    "tests/test_calculator.py::test_add": "passed",
+    "tests/test_calculator.py::test_divide": "failed",
+    "tests/test_calculator.py::test_divide_by_zero": "passed",
+    "tests/test_calculator.py::test_modulo": "failed",
+    "tests/test_calculator.py::test_multiply": "passed",
+    "tests/test_calculator.py::test_power": "passed",
+    "tests/test_calculator.py::test_subtract": "failed",
+    "tests/test_string_utils.py::test_capitalize_words": "passed",
+    "tests/test_string_utils.py::test_count_vowels": "failed",
+    "tests/test_string_utils.py::test_is_palindrome": "failed",
+    "tests/test_string_utils.py::test_reverse_string": "failed"
+  },
+  "run_id": "r_20261005_205403",
+  "schema_version": "1.0"
+}
