@@ -1,23 +1,39 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/Button';
+import authService from '../services/authService';
 import './Auth.css';
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) {
       setError('Please fill in all authentication fields.');
       return;
     }
     
-    onLogin({ email });
-    navigate('/run');
+    setLoading(true);
+    
+    try {
+      // Call backend API
+      await authService.login(email, password);
+      
+      // Also call onLogin for existing app state
+      onLogin({ email });
+      
+      // Navigate to dashboard
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Invalid email or password');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -65,8 +81,13 @@ export default function Login({ onLogin }) {
             />
           </div>
 
-          <Button type="submit" variant="primary" style={{ width: '100%', marginTop: '8px' }}>
-            Sign In
+          <Button 
+            type="submit" 
+            variant="primary" 
+            disabled={loading}
+            style={{ width: '100%', marginTop: '8px' }}
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
 
