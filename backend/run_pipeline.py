@@ -10,6 +10,7 @@ This script runs the available stages in sequence:
 
 import argparse
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -18,13 +19,30 @@ from config import load_settings, setup_logging
 from common.io import read_json, read_text, write_json, ensure_dir
 from analysis import (
     OpenAICompatibleClient,
-    ExplanationGenerator,
-    PatchApplier,
     PatchGenerator,
     RootCauseAnalysisAgent,
-    TestValidator,
-    build_pr_body,
 )
+
+
+def load_local_env() -> None:
+    """Load backend/.env without overriding existing process variables."""
+
+    env_path = Path(__file__).parent / ".env"
+    if not env_path.exists():
+        return
+
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if not key:
+            continue
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        os.environ.setdefault(key, value)
 
 
 def generate_run_id() -> str:
@@ -35,6 +53,8 @@ def generate_run_id() -> str:
 
 def main():
     """Main entry point for pipeline runner."""
+    load_local_env()
+
     parser = argparse.ArgumentParser(
         description="Run the complete 4o4PR pipeline (Steps 1-4)"
     )
@@ -80,9 +100,14 @@ def main():
         help="Generate patch candidates after RCA (requires OmniRoute)"
     )
     parser.add_argument(
+        "--patch-only",
+        action="store_true",
+        help="Run through patch generation only; never apply, validate, explain, or prepare a PR"
+    )
+    parser.add_argument(
         "--apply-patches",
         action="store_true",
-        help="Generate and apply validated source patches"
+        help="Deprecated and ignored; patches are only written to JSON files"
     )
     parser.add_argument(
         "--validate",
@@ -107,6 +132,13 @@ def main():
     )
     
     args = parser.parse_args()
+
+    if args.patch_only or args.generate_patches:
+        args.generate_patches = True
+        args.apply_patches = False
+        args.validate = False
+        args.explain = False
+        args.prepare_pr = False
     
     # Load settings
     try:
@@ -355,7 +387,6 @@ def main():
         try:
             patch_client = OpenAICompatibleClient()
             patch_generator = PatchGenerator(client=patch_client)
-            patch_applier = PatchApplier()
 
             for group in groups:
                 group_id = group['group_id']
@@ -371,14 +402,14 @@ def main():
                 write_json(candidate_path, candidate.to_dict())
                 logger.info(f"Patch candidate written to {candidate_path}")
 
-                if args.apply_patches:
-                    applied = patch_applier.apply(project_root, candidate)
-                    write_json(group_patch_dir / "applied_patch.json", applied.to_dict())
-                    logger.info(f"Patch applied to {applied.file}")
-
         except Exception as e:
-            logger.error(f"Patch generation/application failed: {e}", exc_info=True)
+            logger.error(f"Patch generation failed: {e}", exc_info=True)
             return 1
+
+        logger.info("Patch candidates generated; no source files were modified")
+        if args.patch_only or args.generate_patches:
+            logger.info(f"Patch candidates saved to: {patch_dir}")
+            return 0
 
     # Step 7: Validation
     if args.validate:
