@@ -1,173 +1,54 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Root Cause Analysis Output",
-  "description": "Schema for root cause analysis agent output",
   "type": "object",
-  "required": ["status", "analysis_version"],
+  "required": [
+    "bug_ids",
+    "verdict",
+    "faulty_location",
+    "root_cause",
+    "evidence",
+    "fix_strategy",
+    "affected_symbols",
+    "blast_radius",
+    "confidence",
+    "needs_more_context",
+    "assumptions"
+  ],
   "properties": {
-    "status": {
+    "bug_ids": {"type": "array", "items": {"type": "string"}},
+    "verdict": {
       "type": "string",
-      "enum": ["complete", "needs_more_context", "ambiguous", "cannot_determine"],
-      "description": "Status of the analysis"
+      "enum": ["source_bug", "test_bug", "environment", "flaky", "unknown"]
     },
-    "analysis_version": {
-      "type": "string",
-      "description": "Version of the analysis schema",
-      "const": "1.0"
+    "faulty_location": {
+      "type": ["object", "null"],
+      "required": ["file", "qualified_name", "line_start", "line_end"],
+      "properties": {
+        "file": {"type": "string"},
+        "qualified_name": {"type": "string"},
+        "line_start": {"type": "integer", "minimum": 1},
+        "line_end": {"type": "integer", "minimum": 1}
+      }
     },
-    "bugs": {
+    "root_cause": {"type": "string"},
+    "evidence": {
       "type": "array",
-      "description": "Analysis for each bug in the group",
       "items": {
         "type": "object",
-        "required": ["bug_id", "root_cause", "location", "confidence"],
+        "required": ["file", "line", "observation"],
         "properties": {
-          "bug_id": {
-            "type": "string",
-            "description": "Bug ID from the bug report"
-          },
-          "root_cause": {
-            "type": "string",
-            "description": "Clear explanation of the root cause (2-4 sentences)"
-          },
-          "location": {
-            "type": "object",
-            "required": ["file", "function"],
-            "properties": {
-              "file": {
-                "type": "string",
-                "description": "File path where the bug is located"
-              },
-              "function": {
-                "type": "string",
-                "description": "Function or method name containing the bug"
-              },
-              "line_start": {
-                "type": "integer",
-                "description": "Starting line number of the buggy code"
-              },
-              "line_end": {
-                "type": "integer",
-                "description": "Ending line number of the buggy code"
-              }
-            }
-          },
-          "evidence": {
-            "type": "array",
-            "description": "List of evidence supporting this conclusion",
-            "items": {
-              "type": "object",
-              "required": ["type", "description"],
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "enum": ["test_assertion", "source_code", "error_message", "related_function"],
-                  "description": "Type of evidence"
-                },
-                "description": {
-                  "type": "string",
-                  "description": "Description of the evidence"
-                },
-                "reference": {
-                  "type": "string",
-                  "description": "Code reference in format 'file:line' or 'file:line_start-line_end'"
-                }
-              }
-            }
-          },
-          "confidence": {
-            "type": "string",
-            "enum": ["high", "medium", "low"],
-            "description": "Confidence level in this root cause analysis"
-          },
-          "related_bugs": {
-            "type": "array",
-            "description": "Bug IDs of related bugs with the same root cause",
-            "items": {
-              "type": "string"
-            }
-          },
-          "notes": {
-            "type": "string",
-            "description": "Additional notes or caveats"
-          }
+          "file": {"type": "string"},
+          "line": {"type": "integer", "minimum": 1},
+          "observation": {"type": "string"}
         }
       }
     },
-    "needs_more_context": {
-      "type": "object",
-      "description": "Request for additional context (only if status is 'needs_more_context')",
-      "properties": {
-        "reason": {
-          "type": "string",
-          "description": "Explanation of why more context is needed"
-        },
-        "requested_symbols": {
-          "type": "array",
-          "description": "List of symbol IDs needed for complete analysis",
-          "items": {
-            "type": "string"
-          }
-        },
-        "requested_files": {
-          "type": "array",
-          "description": "List of file paths needed for complete analysis",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "ambiguities": {
-      "type": "array",
-      "description": "List of ambiguities found (if status is 'ambiguous')",
-      "items": {
-        "type": "object",
-        "required": ["description"],
-        "properties": {
-          "description": {
-            "type": "string",
-            "description": "Description of the ambiguity"
-          },
-          "conflicting_evidence": {
-            "type": "array",
-            "description": "References to conflicting code or tests",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    "summary": {
-      "type": "string",
-      "description": "High-level summary of findings (1-2 sentences)"
-    }
-  },
-  "oneOf": [
-    {
-      "properties": {
-        "status": {"const": "complete"}
-      },
-      "required": ["bugs", "summary"]
-    },
-    {
-      "properties": {
-        "status": {"const": "needs_more_context"}
-      },
-      "required": ["needs_more_context"]
-    },
-    {
-      "properties": {
-        "status": {"const": "ambiguous"}
-      },
-      "required": ["ambiguities", "bugs"]
-    },
-    {
-      "properties": {
-        "status": {"const": "cannot_determine"}
-      },
-      "required": ["summary"]
-    }
-  ]
+    "fix_strategy": {"type": "string"},
+    "affected_symbols": {"type": "array", "items": {"type": "string"}},
+    "blast_radius": {"type": "string", "enum": ["low", "medium", "high"]},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "needs_more_context": {"type": "array", "items": {"type": "string"}},
+    "assumptions": {"type": "array", "items": {"type": "string"}}
+  }
 }

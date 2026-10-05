@@ -88,6 +88,22 @@ python -m detector.cli \
     --root tests/fixtures/sample_bugs \
     --import-root src \
     --out-dir runs/$RUN_ID/detector
+5. Run root-cause analysis through OmniRoute when `OMNIROUTE_API_KEY` is set
+
+Configure OmniRoute before Stage 5:
+
+```powershell
+$env:OMNIROUTE_BASE_URL = "http://localhost:20128/v1"
+$env:OMNIROUTE_API_KEY = "your-omniroute-key"
+$env:OMNIROUTE_MODEL = "auto/coding"
+```
+
+Run the later stages explicitly:
+
+```powershell
+python run_pipeline.py --root tests/fixtures/sample_bugs --import-root src `
+    --generate-patches --apply-patches --validate --explain --prepare-pr --verbose
+```
 
 # 3. Group
 python -m grouper.cli \
@@ -110,12 +126,19 @@ python -m context.cli \
 python run_pipeline.py \
     --root /path/to/your/project \
     --import-root src \
+├── analysis/G1/analysis_result.json   # Validated RCA output per group
+├── patches/G1/patch_candidate.json    # Validated patch proposal
+├── patches/G1/applied_patch.json      # Applied diff, when requested
+├── validation/validation_result.json  # Post-patch pytest result
+└── reporting/                         # Explanations and pr_body.md
     --import-root lib \
     --verbose
 ```
 
 **Note:** Make sure your project has:
-- pytest tests
+4. **Run RCA** - Set the OmniRoute variables and run the pipeline.
+5. **Review patch artifacts** - Use `--generate-patches` before allowing application.
+6. **Review validation and PR body** - Use `--validate --explain --prepare-pr`.
 - Proper import structure
 - Tests that use imports (not sys.path hacks, or configure `import_roots` accordingly)
 
