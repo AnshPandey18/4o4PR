@@ -110,8 +110,27 @@ class OpenAICompatibleClient:
 
         try:
             with urlopen(request, timeout=self.timeout) as response:
-                body = json.loads(response.read().decode("utf-8"))
-        except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
+                raw_body = response.read().decode("utf-8")
+                try:
+                    body = json.loads(raw_body)
+                except json.JSONDecodeError as exc:
+                    status = getattr(response, "status", "unknown")
+                    content_type = response.headers.get("Content-Type", "unknown")
+                    details = raw_body.strip()[:1000] or "<empty response body>"
+                    raise RootCauseAnalysisError(
+                        "RCA model returned a non-JSON response: "
+                        f"HTTP {status}, Content-Type {content_type}: {details}"
+                    ) from exc
+        except HTTPError as exc:
+            try:
+                details = exc.read().decode("utf-8", errors="replace").strip()
+            except Exception:
+                details = ""
+            suffix = f": {details[:1000]}" if details else ""
+            raise RootCauseAnalysisError(
+                f"RCA model request failed: HTTP {exc.code} {exc.reason}{suffix}"
+            ) from exc
+        except (URLError, TimeoutError, UnicodeError) as exc:
             raise RootCauseAnalysisError(f"RCA model request failed: {exc}") from exc
 
         try:
