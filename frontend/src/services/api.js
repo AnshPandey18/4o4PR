@@ -61,6 +61,21 @@ export async function getLatestDemoReport() {
   return _json(await fetch(`${BASE}/api/demo/latest-report`));
 }
 
+/** Fetch available on-disk pipeline run directories and their artifacts. */
+export async function getRunsDirList() {
+  return _json(await fetch(`${BASE}/api/runs-list`));
+}
+
+/** Fetch the markdown report for a specific pipeline run directory. */
+export async function getMarkdownReport(runDirName) {
+  return _json(await fetch(`${BASE}/api/run-dirs/${runDirName}/markdown`));
+}
+
+/** Fetch a JSON artifact from a specific pipeline run directory. */
+export async function getJsonArtifact(runDirName, filePath) {
+  return _json(await fetch(`${BASE}/api/run-dirs/${runDirName}/json/${filePath}`));
+}
+
 /** Returns an EventSource for SSE streaming of run logs. */
 export function streamRun(runId) {
   return new EventSource(`${BASE}/api/runs/${runId}/stream`);
