@@ -1,0 +1,18 @@
+{
+  "attempt": 1,
+  "behavior_change": "subtract(5,3) returns 2 instead of 8; divide(10,2) returns 5.0 instead of 0.2; modulo(10,3) returns 1 instead of 0. All other behaviour (ZeroDivisionError on b==0, correct results for valid inputs) is preserved.",
+  "bug_ids": [
+    "b_056a5081c629",
+    "b_54e477c51122",
+    "b_bd675980c5ec"
+  ],
+  "rationale": "Three single-line operator fixes: (1) subtract line 33: `a + b` → `a - b`; (2) divide line 66: `b / a` → `a / b`; (3) modulo line 99: `a % (b - 1)` → `a % b`. Public signatures, docstrings (minus the BUG annotations), zero-division guards, and surrounding code are all preserved unchanged.",
+  "replacement_code": "def subtract(a, b):\n    \"\"\"Subtract b from a.\n\n    Args:\n        a: First number\n        b: Second number\n\n    Returns:\n        Difference of a and b\n    \"\"\"\n    return a - b\n\n\ndef divide(a, b):\n    \"\"\"Divide a by b.\n\n    Args:\n        a: Numerator\n        b: Denominator\n\n    Returns:\n        Quotient of a divided by b\n\n    Raises:\n        ZeroDivisionError: If b is zero\n    \"\"\"\n    if b == 0:\n        raise ZeroDivisionError(\"Cannot divide by zero\")\n    return a / b\n\n\ndef modulo(a, b):\n    \"\"\"Calculate a modulo b.\n\n    Args:\n        a: Dividend\n        b: Divisor\n\n    Returns:\n        Remainder of a divided by b\n\n    Raises:\n        ZeroDivisionError: If b is zero\n    \"\"\"\n    if b == 0:\n        raise ZeroDivisionError(\"Cannot modulo by zero\")\n    return a % b",
+  "self_check": "Each fix targets exactly the faulty expression identified in the RCA evidence. No test files are modified, no new dependencies are introduced, and all three public function signatures remain identical.",
+  "target": {
+    "file": "src/calculator.py",
+    "line_end": 99,
+    "line_start": 21,
+    "qualified_name": "calculator"
+  }
+}

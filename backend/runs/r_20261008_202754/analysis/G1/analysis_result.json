@@ -1,0 +1,59 @@
+{
+  "affected_symbols": [
+    "src/calculator.py::subtract",
+    "src/calculator.py::divide",
+    "src/calculator.py::modulo"
+  ],
+  "assumptions": [
+    "No other code in the repository calls subtract, divide, or modulo in a way that depends on the current (buggy) behavior."
+  ],
+  "blast_radius": "low",
+  "bug_ids": [
+    "b_056a5081c629",
+    "b_54e477c51122",
+    "b_bd675980c5ec"
+  ],
+  "confidence": 1.0,
+  "evidence": [
+    {
+      "file": "src/calculator.py",
+      "line": 33,
+      "observation": "`return a + b` uses the addition operator. For subtract(5, 3) this yields 8, but the test at tests/test_calculator.py:25 expects 2 (i.e., 5 - 3)."
+    },
+    {
+      "file": "tests/test_calculator.py",
+      "line": 25,
+      "observation": "`assert subtract(5, 3) == 2` — the expected result 2 is consistent with subtraction, confirming the operator in the source is wrong."
+    },
+    {
+      "file": "src/calculator.py",
+      "line": 66,
+      "observation": "`return b / a` inverts numerator and denominator. For divide(10, 2) this yields 2/10 = 0.2, but the test at tests/test_calculator.py:39 expects 5 (i.e., 10 / 2)."
+    },
+    {
+      "file": "tests/test_calculator.py",
+      "line": 39,
+      "observation": "`assert divide(10, 2) == 5` — expected result 5 is consistent with a / b, confirming the operands in the source are swapped."
+    },
+    {
+      "file": "src/calculator.py",
+      "line": 99,
+      "observation": "`return a % (b - 1)` reduces the divisor by 1 before applying modulo. For modulo(10, 3) this yields 10 % 2 == 0, but the test at tests/test_calculator.py:62 expects 1 (i.e., 10 % 3)."
+    },
+    {
+      "file": "tests/test_calculator.py",
+      "line": 62,
+      "observation": "`assert modulo(10, 3) == 1` — expected result 1 is consistent with a % b, confirming the `(b - 1)` expression in the source is wrong."
+    }
+  ],
+  "faulty_location": {
+    "file": "src/calculator.py",
+    "line_end": 99,
+    "line_start": 21,
+    "qualified_name": "calculator"
+  },
+  "fix_strategy": "Each fix is a single-line change in src/calculator.py: (1) line 33: replace `return a + b` with `return a - b`; (2) line 66: replace `return b / a` with `return a / b`; (3) line 99: replace `return a % (b - 1)` with `return a % b`. No changes to tests or any other files are needed.",
+  "needs_more_context": [],
+  "root_cause": "Three functions in src/calculator.py contain incorrect operators or inverted operands: (1) `subtract` at line 33 uses addition (`a + b`) instead of subtraction (`a - b`), producing 8 instead of 2 for inputs (5, 3); (2) `divide` at line 66 inverts the operands (`b / a`) instead of computing `a / b`, producing 0.2 instead of 5 for inputs (10, 2); (3) `modulo` at line 99 subtracts 1 from the divisor (`a % (b - 1)`) instead of using it directly (`a % b`), producing 0 instead of 1 for inputs (10, 3) because 10 % 2 == 0 rather than 10 % 3 == 1.",
+  "verdict": "source_bug"
+}
