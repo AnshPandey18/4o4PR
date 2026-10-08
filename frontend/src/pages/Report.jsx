@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getLatestDemoReport, getRunReport, listRuns } from '../services/api';
+import { getLatestDemoReport, getRunReport, listRuns, getRunsDirList, getMarkdownReport, getJsonArtifact } from '../services/api';
+import {
+  STATIC_BUG_REPORT,
+  STATIC_BASELINE_RESULTS,
+  STATIC_RUN_ID,
+  STATIC_MD_CONTENT,
+  STATIC_RUNS_DIR_LIST,
+} from '../data/staticReport';
 import './Report.css';
 
 /* ─── HELPERS ── */
@@ -256,6 +263,247 @@ function ErrorState({ message, onRetry }) {
           Make sure the backend is running: <code style={{ color: '#20c2a4' }}>uvicorn app.main:app --reload</code>
         </p>
       </div>
+    </div>
+  );
+}
+
+/* ─── JSON FILE POPUP MODAL ── */
+function JsonModal({ runDir, filePath, onClose }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    setLoading(true); setErr(null); setData(null);
+    getJsonArtifact(runDir, filePath)
+      .then(res => setData(res.data))
+      .catch(e => setErr(e.message || 'Failed to load JSON'))
+      .finally(() => setLoading(false));
+  }, [runDir, filePath]);
+
+  const pretty = data ? JSON.stringify(data, null, 2) : '';
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(pretty).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  // Escape key
+  useEffect(() => {
+    const fn = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', fn);
+    return () => window.removeEventListener('keydown', fn);
+  }, [onClose]);
+
+  const fileName = filePath.split('/').pop();
+
+  return (
+    <>
+      <div className="rp-json-backdrop" onClick={onClose} />
+      <div className="rp-json-modal">
+        {/* header */}
+        <div className="rp-json-modal-head">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="rp-json-file-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#20c2a4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div>
+              <p className="rp-json-modal-title">{fileName}</p>
+              <p className="rp-json-modal-sub">{runDir} / {filePath}</p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {data && (
+              <button className="rp-json-copy-btn" onClick={handleCopy}>
+                {copied ? (
+                  <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#27c93f" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!</>
+                ) : (
+                  <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</>
+                )}
+              </button>
+            )}
+            <button className="rp-panel-close" onClick={onClose} aria-label="Close">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+        {/* body */}
+        <div className="rp-json-modal-body">
+          {loading && (
+            <div className="rp-md-loading">
+              <div className="rp-md-spin" />
+              <span>Loading {fileName}…</span>
+            </div>
+          )}
+          {err && <p style={{ color: '#e6714f', fontSize: 13, padding: 16 }}>Error: {err}</p>}
+          {data && (
+            <pre className="rp-json-pre">
+              {colorizeJson(pretty)}
+            </pre>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* simple JSON syntax colorizer */
+function colorizeJson(str) {
+  const parts = [];
+  const regex = /("[^"]*"\s*:)|("[^"]*")|(-?\d+\.?\d*(?:[eE][+-]?\d+)?)|(true|false|null)/g;
+  let lastIdx = 0, match;
+  while ((match = regex.exec(str)) !== null) {
+    if (match.index > lastIdx) parts.push(<span key={lastIdx} style={{ color: 'rgba(255,255,255,0.4)' }}>{str.slice(lastIdx, match.index)}</span>);
+    if (match[1]) parts.push(<span key={match.index + 'k'} style={{ color: '#79b8ff' }}>{match[1]}</span>);
+    else if (match[2]) parts.push(<span key={match.index + 's'} style={{ color: '#9ecbff' }}>{match[2]}</span>);
+    else if (match[3]) parts.push(<span key={match.index + 'n'} style={{ color: '#f8b195' }}>{match[3]}</span>);
+    else if (match[4]) parts.push(<span key={match.index + 'b'} style={{ color: '#79deff' }}>{match[4]}</span>);
+    lastIdx = match.index + match[0].length;
+  }
+  if (lastIdx < str.length) parts.push(<span key={lastIdx + 'r'} style={{ color: 'rgba(255,255,255,0.4)' }}>{str.slice(lastIdx)}</span>);
+  return parts;
+}
+
+/* ─── FULL-SCREEN MD MODAL ── */
+function MdModal({ content, loading, onClose }) {
+  // Escape key
+  useEffect(() => {
+    const fn = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', fn);
+    return () => window.removeEventListener('keydown', fn);
+  }, [onClose]);
+
+  return (
+    <div className="rp-md-modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="rp-md-modal">
+        {/* header */}
+        <div className="rp-md-modal-head">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="rp-json-file-icon" style={{ background: 'rgba(184,85,231,0.15)', borderColor: 'rgba(184,85,231,0.3)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b855e7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: 'Inter, sans-serif' }}>bug_report.md</p>
+              <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: 'IBM Plex Mono, monospace' }}>Full Pipeline Report</p>
+            </div>
+          </div>
+          <button className="rp-panel-close" onClick={onClose} aria-label="Close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        {/* body */}
+        <div className="rp-md-modal-body">
+          {loading ? (
+            <div className="rp-md-loading" style={{ justifyContent: 'center', padding: '48px 0' }}>
+              <div className="rp-md-spin" />
+              <span>Loading bug_report.md…</span>
+            </div>
+          ) : (
+            <MarkdownViewer content={content} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── MARKDOWN VIEWER ── */
+function MarkdownViewer({ content }) {
+  if (!content) return null;
+
+  const lines = content.split('\n');
+  return (
+    <div className="rp-md-viewer">
+      {lines.map((line, i) => {
+        // h1
+        if (/^# /.test(line)) return <h1 key={i} className="rp-md-h1">{line.slice(2)}</h1>;
+        // h2
+        if (/^## /.test(line)) return <h2 key={i} className="rp-md-h2">{line.slice(3)}</h2>;
+        // h3
+        if (/^### /.test(line)) return <h3 key={i} className="rp-md-h3">{line.slice(4)}</h3>;
+        // hr
+        if (/^---/.test(line)) return <hr key={i} className="rp-md-hr" />;
+        // code fence (toggle — just show as block)
+        if (/^```/.test(line)) return <div key={i} className="rp-md-code-fence">{line}</div>;
+        // bullet
+        if (/^- /.test(line)) {
+          const rest = line.slice(2).replace(/\*\*(.*?)\*\*/g, (_, t) => `<strong>${t}</strong>`);
+          return <div key={i} className="rp-md-bullet" dangerouslySetInnerHTML={{ __html: `• ${rest}` }} />;
+        }
+        // bold inline in plain line
+        if (/\*\*/.test(line)) {
+          const html = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+          return <p key={i} className="rp-md-p" dangerouslySetInnerHTML={{ __html: html }} />;
+        }
+        // blank
+        if (line.trim() === '') return <div key={i} className="rp-md-blank" />;
+        // default
+        return <p key={i} className="rp-md-p">{line}</p>;
+      })}
+    </div>
+  );
+}
+
+/* ─── FILE TREE COMPONENT (flat list, no folder grouping) ── */
+function FileTree({ files, hasMarkdown, onOpenJson, onOpenMd, mdLoading }) {
+  const [hovered, setHovered] = useState(null);
+
+  const allFiles = (files || []);
+
+  const jsonIcon = <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#20c2a4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>;
+  const mdIcon   = <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#b855e7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>;
+
+  if (allFiles.length === 0 && !hasMarkdown) {
+    return <p style={{ padding: '16px 20px', color: 'rgba(255,255,255,0.25)', fontSize: 12, fontFamily: 'IBM Plex Mono, monospace' }}>No files found for this run.</p>;
+  }
+
+  return (
+    <div className="rp-ftree">
+      {allFiles.map(filePath => {
+        const name = filePath.split('/').pop();
+        return (
+          <button
+            key={filePath}
+            className={`rp-ftree-file${hovered === filePath ? ' rp-ftree-file-hov' : ''}`}
+            onClick={() => onOpenJson(filePath)}
+            onMouseEnter={() => setHovered(filePath)}
+            onMouseLeave={() => setHovered(null)}
+            title={`Open ${filePath}`}
+          >
+            <span className="rp-ftree-file-icon">{jsonIcon}</span>
+            <span className="rp-ftree-file-name">{name}</span>
+            <span className="rp-ftree-file-path">{filePath}</span>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(32,194,164,0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto', flexShrink: 0 }}>
+              <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+            </svg>
+          </button>
+        );
+      })}
+
+      {/* markdown report row */}
+      {hasMarkdown && (
+        <button
+          className={`rp-ftree-file rp-ftree-file-md${hovered === '__md' ? ' rp-ftree-file-hov' : ''}`}
+          onClick={onOpenMd}
+          onMouseEnter={() => setHovered('__md')}
+          onMouseLeave={() => setHovered(null)}
+          disabled={mdLoading}
+          title="View full markdown report"
+        >
+          <span className="rp-ftree-file-icon">{mdIcon}</span>
+          <span className="rp-ftree-file-name" style={{ color: '#d08cf7' }}>bug_report.md</span>
+          <span className="rp-ftree-file-path">detector/bug_report.md</span>
+          {mdLoading
+            ? <div className="rp-md-spin" style={{ width: 10, height: 10, borderWidth: '2px', marginLeft: 'auto', flexShrink: 0 }} />
+            : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(184,85,231,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto', flexShrink: 0 }}>
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+          }
+        </button>
+      )}
     </div>
   );
 }
@@ -531,10 +779,75 @@ export default function Report({ completedRun }) {
   const [statsRef, statsVis] = useInView(0.2);
 
   // real data state
-  const [runs,     setRuns]     = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState(null);
-  const [runId,    setRunId]    = useState(completedRun?.runId || null);
+  const [runs,        setRuns]        = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState(null);
+  const [runId,       setRunId]       = useState(completedRun?.runId || null);
+  const [isLiveData,  setIsLiveData]  = useState(false);
+
+  // File browser state
+  const [runsDirList,   setRunsDirList]   = useState([]);
+  const [selectedDir,   setSelectedDir]   = useState(null);   // selected run folder
+  const [selectedJson,  setSelectedJson]  = useState('');     // selected JSON file path
+  // JSON popup
+  const [jsonModal,     setJsonModal]     = useState(null);   // { runDir, filePath }
+  // MD full-screen modal
+  const [mdContent,     setMdContent]     = useState(null);
+  const [mdLoading,     setMdLoading]     = useState(false);
+  const [mdModalOpen,   setMdModalOpen]   = useState(false);
+
+  // Load ALL run dirs list — fallback to static list
+  useEffect(() => {
+    getRunsDirList()
+      .then(d => {
+        const all = d.runs || [];
+        if (all.length > 0) {
+          setRunsDirList(all);
+          setSelectedDir(all[0].run_dir);
+          // Pre-select first JSON file if any
+          const firstJson = (all[0].files || []).find(f => f.endsWith('.json'));
+          setSelectedJson(firstJson || '');
+        } else {
+          setRunsDirList(STATIC_RUNS_DIR_LIST);
+          setSelectedDir(STATIC_RUNS_DIR_LIST[0].run_dir);
+          const firstJson = (STATIC_RUNS_DIR_LIST[0].files || []).find(f => f.endsWith('.json'));
+          setSelectedJson(firstJson || '');
+        }
+      })
+      .catch(() => {
+        setRunsDirList(STATIC_RUNS_DIR_LIST);
+        setSelectedDir(STATIC_RUNS_DIR_LIST[0].run_dir);
+        const firstJson = (STATIC_RUNS_DIR_LIST[0].files || []).find(f => f.endsWith('.json'));
+        setSelectedJson(firstJson || '');
+      });
+  }, []);
+
+  // Current dir entry
+  const currentDirEntry = runsDirList.find(r => r.run_dir === selectedDir);
+  const jsonFiles = (currentDirEntry?.files || []).filter(f => f.endsWith('.json'));
+  const hasMarkdown = currentDirEntry?.has_markdown ?? false;
+
+  // Open JSON popup
+  const openJson = () => {
+    if (!selectedDir || !selectedJson) return;
+    setJsonModal({ runDir: selectedDir, filePath: selectedJson });
+  };
+
+  // Open MD full-screen modal
+  const openMd = async () => {
+    if (!selectedDir) return;
+    setMdLoading(true);
+    setMdContent(null);
+    setMdModalOpen(true);
+    try {
+      const res = await getMarkdownReport(selectedDir);
+      setMdContent(res.markdown);
+    } catch {
+      setMdContent(STATIC_MD_CONTENT);
+    } finally {
+      setMdLoading(false);
+    }
+  };
 
   /* parallax orbs */
   useEffect(() => {
@@ -560,7 +873,7 @@ export default function Report({ completedRun }) {
     return () => window.removeEventListener('keydown', fn);
   }, [selectedBug]);
 
-  /* load report data */
+  /* load report data — falls back to static embedded data if backend is offline */
   const loadData = async () => {
     setLoading(true);
     setError(null);
@@ -572,10 +885,21 @@ export default function Report({ completedRun }) {
         data.run_dir,
         data.baseline_results
       );
+      if (builtRuns.length === 0) throw new Error('No runs returned from backend');
       setRuns(builtRuns);
       setRunId(data.bug_report?.run_id);
-    } catch (err) {
-      setError(err.message || 'Could not load report. Make sure the backend is running and a pipeline has been executed.');
+      setIsLiveData(true);
+    } catch {
+      // Backend offline — use static embedded data so the page always renders
+      const builtRuns = buildRunsFromReport(
+        STATIC_BUG_REPORT,
+        null,
+        STATIC_RUN_ID,
+        STATIC_BASELINE_RESULTS
+      );
+      setRuns(builtRuns);
+      setRunId(STATIC_RUN_ID);
+      setIsLiveData(false);
     } finally {
       setLoading(false);
     }
@@ -620,9 +944,9 @@ export default function Report({ completedRun }) {
             <span className="rp-eyebrow">Analytics</span>
             <h1 className="rp-title">Bug Detection Report</h1>
             <p className="rp-subtitle">
-              {runId
-                ? <>Results from run <code style={{ fontFamily: 'monospace', color: '#20c2a4' }}>{runId}</code> — real data from <code style={{ fontFamily: 'monospace', color: '#20c2a4' }}>backend/runs/</code></>
-                : 'Latest pipeline output from backend/runs/ — real detected bugs from sample_bugs fixture.'}
+              {isLiveData
+                ? <>Results from run <code style={{ fontFamily: 'monospace', color: '#20c2a4' }}>{runId}</code> — live data from <code style={{ fontFamily: 'monospace', color: '#20c2a4' }}>backend/runs/</code></>
+                : <>Showing cached results from run <code style={{ fontFamily: 'monospace', color: '#20c2a4' }}>{runId}</code> — start the backend for live data</>}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -636,6 +960,28 @@ export default function Report({ completedRun }) {
             </button>
           </div>
         </div>
+
+        {/* ── FILE BROWSER SECTION ── */}
+        {runsDirList.length > 0 && (
+          <div className="rp-md-section">
+            <div className="rp-md-section-head">
+              <div className="rp-md-section-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                Pipeline Run Files
+                <span className="rp-md-badge">runs/</span>
+              </div>
+            </div>
+
+            <FileTree
+              files={[]}
+              hasMarkdown={hasMarkdown}
+              selectedDir={selectedDir}
+              onOpenJson={(filePath) => setJsonModal({ runDir: selectedDir, filePath })}
+              onOpenMd={openMd}
+              mdLoading={mdLoading}
+            />
+          </div>
+        )}
 
         {loading && <LoadingState />}
         {!loading && error && <ErrorState message={error} onRetry={loadData} />}
@@ -769,6 +1115,24 @@ export default function Report({ completedRun }) {
         <BugPanel
           bug={selectedBug}
           onClose={() => setSelectedBug(null)}
+        />
+      )}
+
+      {/* ── JSON FILE POPUP ── */}
+      {jsonModal && (
+        <JsonModal
+          runDir={jsonModal.runDir}
+          filePath={jsonModal.filePath}
+          onClose={() => setJsonModal(null)}
+        />
+      )}
+
+      {/* ── MD FULL-SCREEN MODAL ── */}
+      {mdModalOpen && (
+        <MdModal
+          content={mdContent}
+          loading={mdLoading}
+          onClose={() => setMdModalOpen(false)}
         />
       )}
     </div>

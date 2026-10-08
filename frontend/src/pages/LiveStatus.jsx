@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PIPELINE_STEPS } from '../data/mockPipeline';
-import { streamRun } from '../services/api';
+import { streamRun, getRunsDirList } from '../services/api';
 import './LiveStatus.css';
 
 /* ── elapsed timer ── */
@@ -60,13 +60,20 @@ export default function LiveStatus({ activeRun, onResetRun, onRunComplete }) {
   const [pipelineStatus,   setPipelineStatus]   = useState('running');
   const [consoleLogs,      setConsoleLogs]       = useState([]);
   const [progress,         setProgress]          = useState(5);
-  const [rootCause,        setRootCause]         = useState('');
   const [prUrl,            setPrUrl]             = useState(null);
   const [paused,           setPaused]            = useState(false);
   const [backendOnline,    setBackendOnline]      = useState(true);
 
   const logBodyRef = useRef(null);
   const esRef      = useRef(null);
+
+  const [runFiles, setRunFiles] = useState([]);
+  const [runDirName, setRunDirName] = useState(null);
+  const reportDirs = [];
+  const selectedReport = null;
+  const reportDropOpen = false;
+  const dropRef = useRef(null);
+  const selRunEntry = null;
 
   const runRepo = activeRun?.repo || 'AnshPandey18/4o4PR';
   const runBug  = activeRun?.bug  || 'Issue #404: pytest failure in auth module';
@@ -110,11 +117,6 @@ export default function LiveStatus({ activeRun, onResetRun, onRunComplete }) {
           setProgress(Math.min(Math.round(base + 100 / PIPELINE_STEPS.length * 0.5), 98));
         }
 
-        // Root cause
-        if (data.root_cause && !rootCause) {
-          setRootCause(data.root_cause);
-        }
-
         // PR URL
         if (data.pr_url) {
           setPrUrl(data.pr_url);
@@ -125,6 +127,16 @@ export default function LiveStatus({ activeRun, onResetRun, onRunComplete }) {
           setPipelineStatus(data.status);
           setProgress(data.status === 'completed' ? 100 : 65);
           es.close();
+          if (data.run_dir) {
+            getRunsDirList().then(result => {
+              const currentRun = (result.runs || []).find(run => run.run_dir === data.run_dir);
+              setRunDirName(data.run_dir);
+              setRunFiles(currentRun?.files || []);
+            }).catch(() => {
+              setRunDirName(data.run_dir);
+              setRunFiles([]);
+            });
+          }
           // Notify App so Report page can use the real run data
           onRunComplete?.({
             runId,
@@ -281,6 +293,35 @@ export default function LiveStatus({ activeRun, onResetRun, onRunComplete }) {
                 })}
               </div>
             </div>
+            {runFiles.length > 0 && (
+              <div className="ls2-rdd-files">
+                <div className="ls2-rdd-files-head">
+                  <span>Pipeline Run Files</span>
+                  <span className="ls2-rdd-files-count">{runDirName}</span>
+                </div>
+                <div className="ls2-rdd-files-list">
+                  {runFiles.map(filePath => (
+                    <div key={filePath} className="ls2-rdd-file-row">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0-2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                      <span>{filePath}</span>
+                    </div>
+                  ))}
+                  <div
+                    className="ls2-rdd-file-row ls2-rdd-file-md"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => navigate('/report')}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => e.key === 'Enter' && navigate('/report')}
+                    title="Open full markdown report"
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0-2 2V8z"/><polyline points="14 2 20 8"/></svg>
+                    <span style={{ flex: 1 }}>bug_report.md</span>
+                    <span className="ls2-rdd-md-badge">View Full Report ↓</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* right: log + root cause + outcome */}
@@ -309,17 +350,6 @@ export default function LiveStatus({ activeRun, onResetRun, onRunComplete }) {
               </div>
             </div>
 
-            {/* root cause card */}
-            {rootCause && (
-              <div className="ls2-card ls2-card-blush ls2-root-cause">
-                <div className="ls2-rc-head">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                  ROOT CAUSE EXPLANATION
-                </div>
-                <p className="ls2-rc-text">{rootCause}</p>
-              </div>
-            )}
-
             {/* OUTCOME — success */}
             {pipelineStatus === 'completed' && (
               <div className="ls2-outcome ls2-outcome-success">
@@ -330,6 +360,115 @@ export default function LiveStatus({ activeRun, onResetRun, onRunComplete }) {
                     Repair Successfully Executed
                   </div>
                   <p className="ls2-outcome-desc">Fix generated, validated against pytest docker sandbox, and submitted as a pull request.</p>
+
+                  {/* ── Past Reports Dropdown ── */}
+                  {reportDirs.length > 0 && (
+                    <div className="ls2-report-dropdown-wrap" ref={dropRef}>
+                      <div className="ls2-rdd-label">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Past Runs ({reportDirs.length})
+                      </div>
+                      <button
+                        className="ls2-rdd-trigger"
+                        onClick={() => setReportDropOpen(p => !p)}
+                        id="ls2-report-dropdown-btn"
+                      >
+                        <span className="ls2-rdd-trigger-text">
+                          {selectedReport || 'Select a run report…'}
+                        </span>
+                        <svg
+                          width="12" height="12" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" strokeWidth="2.5"
+                          strokeLinecap="round" strokeLinejoin="round"
+                          style={{ transform: reportDropOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}
+                        >
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                      </button>
+
+                      {reportDropOpen && (
+                        <div className="ls2-rdd-menu">
+                          {reportDirs.map(r => (
+                            <button
+                              key={r.run_dir}
+                              className={`ls2-rdd-item ${selectedReport === r.run_dir ? 'ls2-rdd-item-active' : ''}`}
+                              onClick={() => { setSelectedReport(r.run_dir); setReportDropOpen(false); }}
+                            >
+                              <span className="ls2-rdd-item-dir">{r.run_dir}</span>
+                              <span className="ls2-rdd-item-meta">
+                                {r.files.length} file{r.files.length !== 1 ? 's' : ''}
+                                {r.has_markdown && <span className="ls2-rdd-md-badge">MD</span>}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── Selected Report File List ── */}
+                  {selRunEntry && (
+                    <div className="ls2-rdd-files ls2-rdd-files-right">
+                      <div className="ls2-rdd-files-head">
+                        <span>📂 {selRunEntry.run_dir}</span>
+                        <span className="ls2-rdd-files-count">{selRunEntry.files.length} artifact{selRunEntry.files.length !== 1 ? 's' : ''}</span>
+                      </div>
+                      <div className="ls2-rdd-files-list">
+                        {/* JSON artifacts only — .md is excluded from files[] by the backend */}
+                        {selRunEntry.files.map(f => (
+                          <div key={f} className="ls2-rdd-file-row">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                            <span>{f}</span>
+                          </div>
+                        ))}
+                        {/* .md shown as a special row — navigates to /report */}
+                        {selRunEntry.has_markdown && (
+                          <div
+                            className="ls2-rdd-file-row ls2-rdd-file-md"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => navigate('/report')}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={e => e.key === 'Enter' && navigate('/report')}
+                            title="Open full markdown report"
+                          >
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            <span style={{ flex: 1 }}>detector/bug_report.md</span>
+                            <span className="ls2-rdd-md-badge">View Full Report ↓</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="ls2-rdd-files">
+                    <div className="ls2-rdd-files-head">
+                      <span>Pipeline Run Files</span>
+                      <span className="ls2-rdd-files-count">{runDirName}</span>
+                    </div>
+                    <div className="ls2-rdd-files-list">
+                      {runFiles.map(filePath => (
+                        <div key={filePath} className="ls2-rdd-file-row">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                          <span>{filePath}</span>
+                        </div>
+                      ))}
+                      <div
+                        className="ls2-rdd-file-row ls2-rdd-file-md"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => navigate('/report')}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={e => e.key === 'Enter' && navigate('/report')}
+                        title="Open full markdown report"
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0-2 2V8z"/><polyline points="14 2 20 8"/></svg>
+                        <span style={{ flex: 1 }}>bug_report.md</span>
+                        <span className="ls2-rdd-md-badge">View Full Report ↓</span>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="ls2-outcome-actions">
                     <button className="ls2-btn-primary" onClick={() => navigate('/report')}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
