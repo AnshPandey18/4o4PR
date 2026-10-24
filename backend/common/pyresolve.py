@@ -26,19 +26,31 @@ class ImportResolver:
         if self.project_root not in self.import_roots:
             self.import_roots.append(self.project_root)
     
-    def resolve_import(self, module_name: str, from_file: Optional[Path] = None) -> Optional[Path]:
+    def resolve_import(
+        self, 
+        module_name: str, 
+        from_file: Optional[Path] = None,
+        is_relative: bool = False,
+        level: int = 0
+    ) -> Optional[Path]:
         """Resolve an import statement to a file path.
         
         Args:
             module_name: Dotted module name (e.g., "calculator" or "utils.math")
             from_file: File containing the import (for relative imports)
+            is_relative: Whether this is a relative import
+            level: Relative import level (1 for ., 2 for .., etc.)
             
         Returns:
             Resolved file path, or None if not found
         """
-        # Check if it's a standard library module
-        if self._is_stdlib(module_name):
+        # Check if it's a standard library module (unless relative)
+        if not is_relative and self._is_stdlib(module_name):
             return None
+        
+        # Handle relative imports
+        if is_relative and from_file and level > 0:
+            return self.resolve_relative_import(module_name, level, from_file)
         
         # Try to resolve in each import root
         for root in self.import_roots:
@@ -138,7 +150,7 @@ class ImportResolver:
             file_path: Path to Python file
             
         Returns:
-            List of import dicts with keys: module, names, line, resolved_file
+            List of import dicts with keys: style, level, module, names, line, resolved_file
         """
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -154,6 +166,8 @@ class ImportResolver:
                 for alias in node.names:
                     resolved = self.resolve_import(alias.name, file_path)
                     imports.append({
+                        'style': 'import',
+                        'level': 0,
                         'module': alias.name,
                         'names': [{'name': alias.name, 'asname': alias.asname}],
                         'line': node.lineno,
@@ -171,11 +185,12 @@ class ImportResolver:
                 
                 names = [{'name': alias.name, 'asname': alias.asname} for alias in node.names]
                 imports.append({
+                    'style': 'from',
+                    'level': node.level,
                     'module': module,
                     'names': names,
                     'line': node.lineno,
-                    'resolved_file': resolved.relative_to(self.project_root).as_posix() if resolved else None,
-                    'level': node.level if node.level > 0 else None
+                    'resolved_file': resolved.relative_to(self.project_root).as_posix() if resolved else None
                 })
         
         return imports

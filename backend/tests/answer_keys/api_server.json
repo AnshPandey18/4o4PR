@@ -1,0 +1,63 @@
+{
+  "fixture": "api_server",
+  "description": "Test fixture with intentional bugs for 4o4PR bug detection evaluation",
+  "bugs": [
+    {
+      "id": "auth_hash_password_insecure",
+      "file": "src/auth.py",
+      "symbol": "_hash_password",
+      "line": 22,
+      "description": "Uses SECRET_KEY directly instead of salt and bcrypt, making it insecure"
+    },
+    {
+      "id": "auth_token_no_expiry",
+      "file": "src/auth.py",
+      "symbol": "generate_token",
+      "line": 39,
+      "description": "Token doesn't include expiry timestamp, always valid"
+    },
+    {
+      "id": "auth_decorator_always_accepts",
+      "file": "src/auth.py",
+      "symbol": "authenticate",
+      "line": 50,
+      "description": "Decorator always accepts any token without proper validation"
+    },
+    {
+      "id": "server_db_connection_fake",
+      "file": "src/server.py",
+      "symbol": "APIServer._initialize_database",
+      "line": 26,
+      "description": "Doesn't actually connect to database, just sets a flag"
+    },
+    {
+      "id": "services_validate_user_always_true",
+      "file": "src/services.py",
+      "symbol": "UserService._validate_user",
+      "line": 27,
+      "description": "Returns True for any input without checking length constraints"
+    },
+    {
+      "id": "services_email_domain_not_checked",
+      "file": "src/services.py",
+      "symbol": "UserService._validate_email",
+      "line": 38,
+      "description": "Should check domain against VALID_EMAIL_DOMAINS constant"
+    },
+    {
+      "id": "services_authenticate_wrong_function",
+      "file": "src/services.py",
+      "symbol": "UserService.authenticate",
+      "line": 92,
+      "description": "Calls _hash_password directly instead of validate_password"
+    }
+  ],
+  "test_expectations": {
+    "test_create_user_validates_password": {
+      "file": "tests/test_services.py",
+      "line": 63,
+      "should_fail": true,
+      "reason": "UserService._validate_user doesn't check password length constraints"
+    }
+  }
+}

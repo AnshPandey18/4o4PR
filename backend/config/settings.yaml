@@ -104,7 +104,7 @@ logging:
 
 # Schema versions (do not modify unless you know what you're doing)
 schema_versions:
-  index: "1.0"
+  index: "1.2"
   bug_report: "2.0"
   bug_groups: "1.0"
   context_manifest: "1.0"
