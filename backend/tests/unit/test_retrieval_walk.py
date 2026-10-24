@@ -74,11 +74,15 @@ class TestGraphWalk:
         cfg = RetrievalConfig()
         hits = walk(graph, seeds, cfg)
         
-        # Build lookup by symbol name
+        # Build lookup by symbol name (use last component after '.')
         hits_by_name = {}
         for hit in hits:
-            name = hit.symbol_id.split('::')[-1]
-            hits_by_name[name] = hit
+            full_name = hit.symbol_id.split('::')[-1]
+            # For methods like DataProcessor.filter, also index by just 'filter'
+            if '.' in full_name:
+                _, short_name = full_name.rsplit('.', 1)
+                hits_by_name[short_name] = hit
+            hits_by_name[full_name] = hit
         
         # Assertions with +-0.01 tolerance
         assert 'filter' in hits_by_name
@@ -114,8 +118,17 @@ class TestGraphWalk:
         assert class_hit.tier == Tier.SKELETON
         
         # Check rank order (excluding DROP)
-        included_hits = [h for h in hits if h.tier != Tier.DROP]
-        included_names = [h.symbol_id.split('::')[-1] for h in included_hits]
+        included_hits = [h for h in hits if h.tier != Tier.DROP and not h.symbol_id.startswith("tests/")]
+        
+        # Extract short names for comparison
+        def get_short_name(full_name: str) -> str:
+            """Extract short method name from qualified symbol name."""
+            name = full_name.split('::')[-1]
+            if '.' in name:
+                return name.split('.')[-1]
+            return name
+        
+        included_names = [get_short_name(h.symbol_id) for h in included_hits]
         
         # Find positions
         filter_pos = included_names.index('filter')

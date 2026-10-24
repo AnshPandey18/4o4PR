@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "4o4pr"
+version = "0.1.0"
+description = "Automated bug detection and fixing system"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+norecursedirs = ["tests/fixtures", "examples", ".git", ".pytest_cache", "__pycache__", "venv", "runs"]
+addopts = "-v --tb=short"

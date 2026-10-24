@@ -17,6 +17,7 @@ class RetrievalConfig:
         'calls': 0.8,           # Function calls another function
         'references': 0.8,      # Function references a constant
         'called_by': 0.5,       # Reverse of calls
+        'decorated_by': 0.5,    # TASK 5: Function decorated by decorator
         'referenced_by': 0.3,   # Reverse of references
         'instantiates': 0.3,    # Function instantiates a class
         'contains': 0.8         # Class contains methods

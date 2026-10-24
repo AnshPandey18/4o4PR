@@ -60,6 +60,10 @@ class Graph:
         self.references = {}
         self.referenced_by = {}
         
+        # TASK 5: Load decorator edges
+        self.decorated_by = call_graph.get('decorated_by', {})
+        self.decorates = call_graph.get('decorates', {})
+        
         # Build references maps from symbol data
         for sym_id, sym_data in self.symbols.items():
             refs = sym_data.get('references', [])
@@ -335,6 +339,11 @@ def _get_neighbors(
     references = graph.references.get(current_id, [])
     for ref_id in references:
         neighbors.append((ref_id, 'references'))
+    
+    # TASK 5: Forward edges: decorated_by (to decorators)
+    decorated_by = graph.decorated_by.get(current_id, [])
+    for decorator_id in decorated_by:
+        neighbors.append((decorator_id, 'decorated_by'))
     
     # Backward edges: callers (with hub detection)
     if not is_test:  # Never traverse called_by into tests

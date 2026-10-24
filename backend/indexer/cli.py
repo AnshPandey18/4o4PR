@@ -8,7 +8,7 @@ from pathlib import Path
 
 from common.io import write_json, ensure_dir
 from config import load_settings, setup_logging
-from .index import RepoIndexer
+from .index import RepoIndexer, SCHEMA_VERSION
 
 
 def generate_run_id() -> str:
@@ -101,12 +101,15 @@ def main():
     cache_dir = None if args.no_cache else settings.cache_dir
     
     # Create indexer
+    # Use SCHEMA_VERSION constant, but allow override from config if present
+    schema_version = getattr(settings.schema_versions, 'index', SCHEMA_VERSION) if hasattr(settings, 'schema_versions') else SCHEMA_VERSION
+    
     indexer = RepoIndexer(
         project_root=settings.project_root,
         import_roots=settings.import_roots,
         test_dirs=settings.test_dirs,
         exclude_patterns=settings.exclude_dirs,
-        schema_version=settings.schema_versions.index
+        schema_version=schema_version
     )
     
     # Run indexing
