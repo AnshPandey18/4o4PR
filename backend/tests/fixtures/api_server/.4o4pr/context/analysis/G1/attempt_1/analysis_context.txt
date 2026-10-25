@@ -1,0 +1,189 @@
+<rules_56e306>
+# System Rules for RCA
+
+You are a root cause analysis agent. Analyze the provided bug information and code context to identify the root cause.
+
+</rules_56e306>
+
+<evidence_56e306>
+# Failure Evidence
+
+## Bug: tests/test_services.py::test_create_user_validates_password
+**Bug ID:** `b_fdf12715614e`
+
+**Error Type:** AssertionError
+**Error Message:**
+```
+assert True == False
+```
+
+**Failing Assertion:**
+- Statement: `assert result == False`
+- Line: 32
+- Assertion 1 of 1
+
+**Traceback Frames:**
+- tests/test_services.py:32 in 
+
+</evidence_56e306>
+
+<tests_56e306>
+# Test Code
+
+## Test: tests/test_services.py::test_create_user_validates_password
+
+```python
+def test_create_user_validates_password():
+
+    service = UserService()
+    result = service.create_user("testuser", "short", "test@example.com")
+    assert result == False
+```
+
+</tests_56e306>
+
+<code_56e306>
+# Suspect Functions
+
+## src/services.py::UserService
+Location: `src/services.py:19-84`
+
+```python
+  19 | class UserService(BaseService):
+  20 |     """User management service."""
+  21 |     
+  22 |     def _validate_user(self, username: str, password: str, email: str) -> bool:
+  23 |         """Validate user data."""
+  24 |         return True
+  25 |     
+  26 |     def _validate_email(self, email: str) -> bool:
+  27 |         """Validate email format and domain.
+  28 |         
+  29 |         Checks against VALID_EMAIL_DOMAINS constant.
+  30 |         """
+  31 |         if '@' not in email:
+  32 |             return False
+  33 |         domain = email.split('@')[1]
+  34 |         return domain in VALID_EMAIL_DOMAINS
+  35 |     
+  36 |     def create_user(self, username: str, password: str, email: str) -> bool:
+  37 |         """Create a new user.
+  38 |         
+  39 |         Calls _validate_user and _hash_password.
+  40 |         """
+  41 |         # Calls _validate_user
+  42 |         if not self._validate_user(username, password, email):
+  43 |             return False
+  44 |         
+  45 |         # Calls _hash_password
+  46 |         hashed = _hash_password(password)
+  47 |         
+  48 |         # Calls _validate_email
+  49 |         if not self._validate_email(email):
+  50 |             return False
+  51 |         
+  52 |         self.users[username] = {
+  53 |             'password': hashed,
+  54 |             'email': email,
+  55 |             'role': USER_ROLE
+  56 |         }
+  57 |         return True
+  58 |     
+  59 |     def update_user(self, username: str, new_password: str) -> bool:
+  60 |         """Update user password."""
+  61 |         if username not in self.users:
+  62 |             return False
+  63 |         
+  64 |         if not self._validate_user(username, new_password, self.users[username]['email']):
+  65 |             return False
+  66 |         
+  67 |         hashed = _hash_password(new_password)
+  68 |         self.users[username]['password'] = hashed
+  69 |         return True
+  70 |     
+  71 |     def authenticate(self, username: str, password: str) -> str:
+  72 |         """Authenticate user and return token."""
+  73 |         if username not in self.users:
+  74 |             raise InvalidTokenException("Invalid username")
+  75 |         
+  76 |         user = self.users[username]
+  77 |         hashed = user['password']
+  78 |         
+  79 |         if _hash_password(password) != hashed:
+  80 |             raise InvalidTokenException("Invalid password")
+  81 |         
+  82 |         token = generate_token(username)
+  83 |         self.tokens[token] = {'user': username}
+  84 |         return token
+
+```
+
+</code_56e306>
+
+<neighbors_56e306>
+# Related Functions
+
+- `src/server.py::__init__(self)`
+  *Initialize server and services.*
+
+- `tests/test_services.py::test_authenticate_invalid_password()`
+  *Test authentication with invalid password.*
+
+- `tests/test_services.py::test_authenticate_invalid_user()`
+  *Test authentication with invalid username.*
+
+- `tests/test_services.py::test_authenticate_valid()`
+  *Test authentication with valid credentials.*
+
+- `tests/test_services.py::test_create_user_valid()`
+  *Test creating a valid user.*
+
+- `tests/test_services.py::test_create_user_validates_email()`
+  *Test that user creation validates email.*
+
+- `tests/test_services.py::test_create_user_validates_password()`
+  *Test password validation on creation.*
+
+- `tests/test_services.py::test_session_manager()`
+  *Test session manager integration.*
+
+- `tests/test_services.py::test_update_user_password()`
+  *Test updating user password.*
+
+</neighbors_56e306>
+
+<repo_map_56e306>
+# Repository Structure
+
+```
+
+src/
+  [S] __init__.py ("API server package.")
+  [S] auth.py (module: auth, "Authentication and authorization utilities.")
+  [S] config.py (module: config, "Configuration and constants for API server.")
+  [S] server.py (module: server, "API Server implementation.")
+  [S] services.py (module: services, "Business logic services.")
+
+```
+
+</repo_map_56e306>
+
+<schema_56e306>
+# Required Output Format
+
+You must respond with valid JSON matching this exact schema:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "verdict": {
+      "type": "string"
+    },
+    "root_cause": {
+      "type": "string"
+    }
+  }
+}
+```
+</schema_56e306>

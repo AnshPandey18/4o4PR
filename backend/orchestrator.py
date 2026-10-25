@@ -1,4 +1,4 @@
-"""Standalone end-to-end orchestrator for 4o4PR pipeline.
+"""End-to-end orchestrator for 4o4PR pipeline.
 
 Runs all steps independently without dependencies on run_pipeline.py or run_bug_detector.py:
 1. Repo Indexer - Parse and index all symbols
@@ -10,9 +10,9 @@ Runs all steps independently without dependencies on run_pipeline.py or run_bug_
 7. Optional: Validation, Explanation, PR preparation
 
 Usage:
-    python standalone_orchestrator.py --root /path/to/project
-    python standalone_orchestrator.py --root /path/to/project --import-root src --skip-patches
-    python standalone_orchestrator.py --help
+    python orchestrator.py --root /path/to/project
+    python orchestrator.py --root /path/to/project --import-root src --skip-patches
+    python orchestrator.py --help
 """
 
 import argparse
@@ -37,6 +37,16 @@ from context.cli import main as context_cli_main
 
 
 logger = logging.getLogger(__name__)
+
+
+# Stage registry: ordered list of (name, method_name, uses_llm)
+STAGE_REGISTRY = [
+    ("indexer", "_run_indexer", False),
+    ("detector", "_run_detector", False),
+    ("grouper", "_run_grouper", False),
+    ("context", "_run_context_builder", False),
+    ("patches", "_run_patch_generation", True),  # Would use LLM if fully implemented
+]
 
 
 def load_local_env() -> None:
@@ -124,7 +134,8 @@ class StandaloneOrchestrator:
         skip_patches: bool = False,
         skip_validation: bool = False,
         skip_explanation: bool = False,
-        skip_pr: bool = False
+        skip_pr: bool = False,
+        stop_after: Optional[str] = None
     ) -> int:
         """Run all pipeline steps.
         
@@ -134,96 +145,160 @@ class StandaloneOrchestrator:
             skip_validation: Skip validation
             skip_explanation: Skip explanation generation
             skip_pr: Skip PR preparation
+            stop_after: Stop after completing this stage (requires non-LLM stage)
             
         Returns:
-            0 on success, non-zero on failure
+            0 on success, non-zero on failure, 2 for invalid stage, 3 for LLM stage
         """
+        # Validate stop_after before creating any output
+        if stop_after:
+            stage_names = [name for name, _, _ in STAGE_REGISTRY]
+            if stop_after not in stage_names:
+                logger.error(f"Invalid stage '{stop_after}'. Valid stages: {', '.join(stage_names)}")
+                return 2
+            
+            # Check if stop point or any stage before it uses LLM
+            for name, _, uses_llm in STAGE_REGISTRY:
+                if uses_llm:
+                    logger.error(f"Cannot stop after '{stop_after}': stage '{name}' requires LLM")
+                    return 3
+                if name == stop_after:
+                    break
+            
+            # Set LLM kill switch
+            os.environ['LLM_DISABLED'] = '1'
+            logger.info(f"LLM kill switch enabled (LLM_DISABLED=1)")
+        
+        stop_stage_index = None
+        if stop_after:
+            for idx, (name, _, _) in enumerate(STAGE_REGISTRY):
+                if name == stop_after:
+                    stop_stage_index = idx
+                    break
         logger.info("=" * 80)
         logger.info(f"4o4PR STANDALONE PIPELINE - RUN ID: {self.run_id}")
         logger.info("=" * 80)
         logger.info(f"Project: {self.project_root}")
         logger.info(f"Output: {self.output_dir}")
         logger.info(f"Timestamp: {self.now_utc.isoformat()}Z")
+        if stop_after:
+            logger.info(f"Stop after: {stop_after}")
         logger.info("")
+        
+        completed_stages = []
         
         # Step 1: Repository Indexer
-        logger.info("STEP 1: Repository Indexer")
-        logger.info("-" * 80)
-        try:
-            if not self._run_indexer():
+        current_stage_idx = 0
+        if stop_stage_index is None or current_stage_idx <= stop_stage_index:
+            logger.info("STEP 1: Repository Indexer")
+            logger.info("-" * 80)
+            try:
+                if not self._run_indexer():
+                    return 1
+                completed_stages.append("indexer")
+            except Exception as e:
+                logger.error(f"Indexer failed: {e}", exc_info=True)
                 return 1
-        except Exception as e:
-            logger.error(f"Indexer failed: {e}", exc_info=True)
-            return 1
-        logger.info("")
+            logger.info("")
+            
+            if stop_after == "indexer":
+                return self._write_stop_marker(completed_stages, stop_after)
         
         # Step 2: Bug Detector
-        logger.info("STEP 2: Bug Detector")
-        logger.info("-" * 80)
-        try:
-            bug_report_path = self._run_detector()
-            if not bug_report_path:
+        current_stage_idx = 1
+        if stop_stage_index is None or current_stage_idx <= stop_stage_index:
+            logger.info("STEP 2: Bug Detector")
+            logger.info("-" * 80)
+            try:
+                bug_report_path = self._run_detector()
+                if not bug_report_path:
+                    return 1
+                
+                # Check if any bugs detected
+                bug_report = read_json(bug_report_path)
+                num_bugs = bug_report.get('summary', {}).get('bugs_detected', 0)
+                logger.info(f"Found {num_bugs} bugs")
+                
+                if num_bugs == 0:
+                    logger.info("No bugs detected. Pipeline complete.")
+                    completed_stages.append("detector")
+                    if stop_after:
+                        return self._write_stop_marker(completed_stages, stop_after)
+                    logger.info("=" * 80)
+                    return 0
+                completed_stages.append("detector")
+            except Exception as e:
+                logger.error(f"Detector failed: {e}", exc_info=True)
                 return 1
+            logger.info("")
             
-            # Check if any bugs detected
-            bug_report = read_json(bug_report_path)
-            num_bugs = bug_report.get('summary', {}).get('bugs_detected', 0)
-            logger.info(f"Found {num_bugs} bugs")
-            
-            if num_bugs == 0:
-                logger.info("No bugs detected. Pipeline complete.")
-                logger.info("=" * 80)
-                return 0
-        except Exception as e:
-            logger.error(f"Detector failed: {e}", exc_info=True)
-            return 1
-        logger.info("")
+            if stop_after == "detector":
+                return self._write_stop_marker(completed_stages, stop_after)
         
         # Step 3: Bug Grouper
-        logger.info("STEP 3: Bug Grouper")
-        logger.info("-" * 80)
-        try:
-            groups_path = self._run_grouper(bug_report_path)
-            if not groups_path:
+        current_stage_idx = 2
+        if stop_stage_index is None or current_stage_idx <= stop_stage_index:
+            logger.info("STEP 3: Bug Grouper")
+            logger.info("-" * 80)
+            try:
+                groups_path = self._run_grouper(bug_report_path)
+                if not groups_path:
+                    return 1
+                
+                groups_data = read_json(groups_path)
+                num_groups = len(groups_data.get('groups', []))
+                logger.info(f"Created {num_groups} bug group(s)")
+                completed_stages.append("grouper")
+            except Exception as e:
+                logger.error(f"Grouper failed: {e}", exc_info=True)
                 return 1
+            logger.info("")
             
-            groups_data = read_json(groups_path)
-            num_groups = len(groups_data.get('groups', []))
-            logger.info(f"Created {num_groups} bug group(s)")
-        except Exception as e:
-            logger.error(f"Grouper failed: {e}", exc_info=True)
-            return 1
-        logger.info("")
+            if stop_after == "grouper":
+                return self._write_stop_marker(completed_stages, stop_after)
         
         # Step 4: Context Builder (for each group)
-        if not skip_context:
-            logger.info("STEP 4: Context Builder")
-            logger.info("-" * 80)
-            try:
-                if not self._run_context_builder(groups_path, bug_report_path):
+        current_stage_idx = 3
+        if stop_stage_index is None or current_stage_idx <= stop_stage_index:
+            if not skip_context:
+                logger.info("STEP 4: Context Builder")
+                logger.info("-" * 80)
+                try:
+                    if not self._run_context_builder(groups_path, bug_report_path):
+                        return 1
+                    completed_stages.append("context")
+                except Exception as e:
+                    logger.error(f"Context building failed: {e}", exc_info=True)
                     return 1
-            except Exception as e:
-                logger.error(f"Context building failed: {e}", exc_info=True)
-                return 1
-            logger.info("")
-        else:
-            logger.info("Skipping context building (--skip-context)")
-            logger.info("")
+                logger.info("")
+                
+                if stop_after == "context":
+                    return self._write_stop_marker(completed_stages, stop_after)
+            else:
+                logger.info("Skipping context building (--skip-context)")
+                logger.info("")
         
         # Step 5: Patch Generation
-        if not skip_patches:
-            logger.info("STEP 5: Patch Generation")
-            logger.info("-" * 80)
-            try:
-                if not self._run_patch_generation(groups_path):
-                    logger.warning("Patch generation skipped (context required)")
-            except Exception as e:
-                logger.error(f"Patch generation failed: {e}", exc_info=True)
-                return 1
-            logger.info("")
-        else:
-            logger.info("Skipping patch generation (--skip-patches)")
-            logger.info("")
+        current_stage_idx = 4
+        if stop_stage_index is None or current_stage_idx <= stop_stage_index:
+            if not skip_patches:
+                logger.info("STEP 5: Patch Generation")
+                logger.info("-" * 80)
+                try:
+                    if not self._run_patch_generation(groups_path):
+                        logger.warning("Patch generation skipped (context required)")
+                    else:
+                        completed_stages.append("patches")
+                except Exception as e:
+                    logger.error(f"Patch generation failed: {e}", exc_info=True)
+                    return 1
+                logger.info("")
+                
+                if stop_after == "patches":
+                    return self._write_stop_marker(completed_stages, stop_after)
+            else:
+                logger.info("Skipping patch generation (--skip-patches)")
+                logger.info("")
         
         # Success
         logger.info("=" * 80)
@@ -448,6 +523,35 @@ class StandaloneOrchestrator:
         except Exception as e:
             logger.error(f"Failed to run patch generation: {e}", exc_info=True)
             return False
+    
+    def _write_stop_marker(self, completed_stages: List[str], stop_after: str) -> int:
+        """Write pipeline_stop.json marker and exit.
+        
+        Args:
+            completed_stages: List of completed stage names
+            stop_after: Stage name where we stopped
+            
+        Returns:
+            0 (success exit code)
+        """
+        stop_marker = {
+            "stage": stop_after,
+            "run_id": self.run_id,
+            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+            "stages_completed": completed_stages
+        }
+        
+        marker_path = self.output_dir / "pipeline_stop.json"
+        write_json(marker_path, stop_marker)
+        
+        logger.info("=" * 80)
+        logger.info(f"PIPELINE STOPPED AFTER: {stop_after}")
+        logger.info("=" * 80)
+        logger.info(f"Completed stages: {', '.join(completed_stages)}")
+        logger.info(f"Stop marker: {marker_path}")
+        logger.info("")
+        
+        return 0
 
 
 def main() -> int:
@@ -460,16 +564,16 @@ def main() -> int:
         epilog="""
 Examples:
   # Run full pipeline on a project
-  python standalone_orchestrator.py --root /path/to/project
+  python orchestrator.py --root /path/to/project
   
   # Run with specific import root
-  python standalone_orchestrator.py --root /path/to/project --import-root src
+  python orchestrator.py --root /path/to/project --import-root src
   
   # Skip certain steps
-  python standalone_orchestrator.py --root /path/to/project --skip-patches
+  python orchestrator.py --root /path/to/project --skip-patches
   
   # Use custom output directory
-  python standalone_orchestrator.py --root /path/to/project --out-dir /tmp/analysis
+  python orchestrator.py --root /path/to/project --out-dir /tmp/analysis
         """
     )
     
@@ -547,6 +651,13 @@ Examples:
         help="Skip PR preparation"
     )
     parser.add_argument(
+        "--stop-after",
+        type=str,
+        default=None,
+        metavar="STAGE",
+        help="Stop after completing STAGE (indexer, detector, grouper, context, patches)"
+    )
+    parser.add_argument(
         "--verbose", "-v",
         action="store_true",
         help="Enable verbose logging"
@@ -596,7 +707,8 @@ Examples:
         skip_patches=args.skip_patches,
         skip_validation=args.skip_validation,
         skip_explanation=args.skip_explanation,
-        skip_pr=args.skip_pr
+        skip_pr=args.skip_pr,
+        stop_after=args.stop_after
     )
 
 

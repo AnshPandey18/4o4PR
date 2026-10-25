@@ -1,251 +1,64 @@
-You are implementing Phase 3 of 4o4PR: a BM25 lexical search index for the Context Builder's retrieval layer, plus a narrowly scoped change to the orchestrator so the pipeline can stop after the context stage without any LLM call.
+LLM SAFETY (read first):
+- The LLM endpoint is configured through an environment variable pointing at
+  OmniRoute. OmniRoute is OFF. Do NOT start it.
+- Do NOT run orchestrator.py without --stop-after context.
+- Do NOT run any command that reaches RCA (backend\analysis) or patch
+  generation.
+- Before running anything, print only the NAMES of LLM-related environment
+  variables (never their values or keys) and the endpoint host they point to.
+- If any command attempts an outbound request to an LLM host, stop
+  immediately and report the command and the error.
+- In task 5, read the guard code and state whether it would block RCA when
+  --stop-after context is used. Do not test this by running RCA.
 
-Work in s:\Programming\4o4PR\backend. The shell is Windows PowerShell: use PowerShell syntax only (no bash, no `&&`; use `;` or separate lines). Python 3.13, standard library only. No LLM or network calls anywhere in indexing, retrieval, or the new orchestrator stop path.
+MODE: S1 (diagnose and stop). Do NOT edit any files. Do NOT read or grep
+backend\old_orchestrator. Report findings with captured command output only.
+Do not claim anything you have not shown with output. Stop after the report.
 
-## Goal and scope
-Given a failing test (a bug group), return the source symbols whose text best matches the failure, ranked deterministically with a per-term explanation.
+REPO: S:\Programming\4o4PR\backend
+CANONICAL DETECTOR: detector\ (the CLI pipeline via orchestrator.py).
+Treat app\agents\bug_detector.py as out of scope for this task.
 
-IN SCOPE:
-- retrieval/tokenizer.py, retrieval/bm25_chunks.py, retrieval/bm25.py, retrieval/bm25_query.py (all new)
-- retrieval/config.py: add a BM25 section only. Do not change the existing graph settings.
-- scripts/eval_bm25.py (new, evaluation only)
-- A narrowly scoped orchestrator change (Phase 0b): add `--stop-after <stage>` and a process-level LLM kill switch. Nothing else in the orchestrator may change.
-- New test files under tests/unit/ only: test_bm25_tokenizer.py, test_bm25_chunks.py, test_bm25_scoring.py, test_bm25_query.py, test_orchestrator_stop.py
+GOAL: Confirm whether the RCA step ever receives the buggy function, and
+explain exactly how RCA's input is built.
 
-OUT OF SCOPE:
-- Phase 4 (fusion with the graph walk, Context Builder wiring, retrieve_more hookup to RCA).
-- RCA, patch generation, Bug Detector, Grouper behaviour, indexer logic, index.json shape, schema_version.
-- Creating answer keys. If a fixture has no answer key, report it; do not write one.
+TASKS:
+1. Describe the current data flow, with file and function names:
+   detector -> orchestrator.py -> context builder (backend\context) ->
+   RCA (backend\analysis) -> LLM call. For each hop, state what input it
+   receives and what it outputs. Cite line numbers.
 
-## Current state (from earlier verified work; re-check only what Phase 0 asks for)
-- retrieval/ exists: config.py (RetrievalConfig), graph.py (Graph.load, walk, symbol_at, check_fresh), seeds.py, __main__.py (debug CLI). 10 golden tests in tests/unit/test_retrieval_walk.py.
-- The indexer emits index.json with schema_version "1.2", content_hash, per-file sha1, and symbols (function/method/class/constant) with line_start, line_end, docstring, signature, is_test, file, kind, parent_class, references, unresolved, approx_tokens, char_count.
-- Class symbols carry children, bases, bases_unresolved and attr_types on EVERY symbol (empty lists for non-classes). Do not change that shape.
-- Fixtures live under tests/fixtures/: api_server (most complex: classes, inheritance, super(), attribute chains, decorators, 67 symbols, 9 files), data_processor (classes, methods, constants), string_processor, sample_bugs (calculator and string utils). examples/sample_bugs is a tracked copy; do not edit examples/.
-- Answer keys live in tests/answer_keys/ (api_server.json exists; check the others in Phase 0).
-- Known ground truth for api_server, to be VERIFIED against the answer key and source, not trusted: the test tests/test_services.py::test_create_user_validates_password fails because src/services.py::UserService._validate_user always returns True.
-- The orchestrator is standalone_orchestrator.py. It is UNTRACKED in git, so its changes cannot be seen in git diff. Phase 0 must save a baseline copy outside the repo so the change can be diffed.
+2. Verify the detector fix. The reported bug: detector only searches inside
+   the assertion expression, so a call on the previous line is missed.
+   Show the relevant code in detector\ (function _extract_calls_from_function
+   or its current equivalent) and explain whether multi-line calls are now
+   handled. Run the detector on tests\fixtures\api_server and paste the
+   output.
 
-## Non-negotiable rules
-1. DO NOT run git add, git commit, git stash, git reset, git checkout, git restore, or git clean. The user commits. At the end show `git status --short` and `git diff --stat`.
-2. Never delete or overwrite a tracked file except where this prompt names it. Never delete or modify previously generated run folders. Write every new output to a new folder.
-3. Never weaken, skip, delete or edit an existing test to make it pass. This includes tests/unit/test_retrieval_walk.py, tests/test_orchestrator.py, tests/unit/test_indexer_features.py and tests/test_bug_detector.py. If an existing test is wrong, stop, explain with evidence, and propose the change without applying it.
-4. Do NOT change index.json shape, the indexer, or schema_version. If BM25 seems to need something from the indexer, stop and report it.
-5. Never guess a value. Every number in any report must be printed by a script written in this task, and the report must name the script that produced it.
-6. Do not tune k1, b, the stoplist, or any weight to make a fixture's bug rank higher. A default may change only with a unit-test-proven reason, and then before/after numbers must be shown for ALL fixtures.
-7. Do not mark anything DONE without printed evidence (test or command output). Partial or skipped work must be stated, with the reason, in the final report.
-8. Deterministic output everywhere: sorted keys and sorted lists. Every ranking breaks ties by symbol_id ascending.
-9. Retrieval and orchestrator code must never read anything under tests/answer_keys/, nor any file named expected_bugs.json or matching *answer*. A test must enforce this.
-10. Fixture code is not edited. Fixture comments and docstrings must contain no bug hints. If you find a leak, report it.
-11. The orchestrator change is limited to the items in Phase 0b. Default behaviour with no new flag must be byte-for-byte the same in its stage sequence and outputs.
+3. Run the context stage on the same fixture:
+   orchestrator.py --stop-after context (use the correct flags from the
+   code, show the command you ran). Open the generated analysis_context.txt
+   and report:
+   - Which sections exist (T1, T2, T3)
+   - Whether src/services.py::UserService._validate_user appears in any
+     section. Quote the line where it appears, or state that it does not.
+   - Full list of symbols included for the failing test.
 
-## Phase 0: Discovery (read-only, then continue without waiting)
+4. Confirm the RCA input. Show where RCA reads the context from and what
+   prompt it builds. Confirm whether it ever receives the source of the
+   function under test, or only the test body.
 
-0.1 Print the RetrievalConfig defaults and the signatures (only) of the public functions in retrieval/graph.py.
+5. Check the LLM guard. The notes say the --stop-after kill switch marks only
+   "patches" as an LLM stage, while analysis\ also calls an LLM. Show the
+   guard code and state whether RCA is blocked when the guard is active.
 
-0.2 Print the real schema of bug_report.json and bug_groups.json. Find the writers (Bug Detector and Grouper) and show a real sample from an existing run folder. Print a mapping table from the prompt's terms to the real field names: "test name" -> ?, "error type" -> ?, "error message" -> ?, "failing test body" -> ?, "traceback frames" -> ?, "bug group members" -> ?. Use the real names everywhere below.
+6. Run pytest on tests\fixtures\api_server only (not the full suite) and
+   report pass/fail counts with the exact command output.
 
-0.3 ORCHESTRATOR INVENTORY (new, required):
-  a. Run `python standalone_orchestrator.py --help` and print it in full.
-  b. Save a baseline copy of the orchestrator OUTSIDE the repo: `Copy-Item standalone_orchestrator.py $env:TEMP\orchestrator_before_bm25.py`, and print `Get-FileHash` for it and the original.
-  c. List every stage in execution order, with the function that runs it, from the code. Print the list as: order, stage name, function, file:line.
-  d. For each stage, state whether it can call the LLM (OmniRoute or any client). Show the code path that proves it (file:line of the client call and how the stage reaches it).
-  e. Print the exact value of --root, --import-root, --out-dir and any other option the help output lists. Do not assume `--import-root src`; use what the help output and code say.
-  f. Report whether any option already stops after the context stage without an LLM call. `--skip-context` skips context, so it is NOT a substitute. If no existing option does this, say so.
-
-0.4 DECISION GATE. Based on 0.3d:
-  - If the stages before context (including grouping) can call the LLM, STOP the orchestrator work. Report which stage calls the LLM and why bug groups can't be produced without it. Do not change grouping behaviour. Continue with Phases 1 to 4 (they do not need the orchestrator), and skip Phase 5 step 1 and 0b, recording them as BLOCKED with the reason.
-  - If grouping does not call the LLM, continue to Phase 0b.
-
-0.5 Print the content_hash and per-file sha1 fields from an existing index.json, and the function that computes them (file:line). BM25 must reuse that exact hashing.
-
-0.6 Fixtures: for each of api_server, data_processor, string_processor and sample_bugs, print: the folder path, the number of .py files, the output of `pytest --collect-only -q` run inside that fixture (or the reason it is not collectable), and whether tests/answer_keys/<name>.json exists. If a key exists, print its top-level JSON keys and one full bug entry, so the eval script can read it.
-
-0.7 Record hashes of every file that might change: `Get-FileHash` for indexer\index.py, indexer\models.py, standalone_orchestrator.py, and the LLM client module (find its path from 0.3). Save the output to $env:TEMP\bm25_phase0_hashes.txt. These are compared again in Phase 6.
-
-Print a Phase 0 summary (max 40 lines) and continue.
-
-## Phase 0b: Orchestrator stop-after and LLM kill switch (only if the decision gate in 0.4 passed)
-
-Add exactly these two things and nothing else.
-
-A. `--stop-after <STAGE>`
-- The orchestrator's stage list from 0.3c becomes an explicit ordered registry: (name, function, uses_llm). If the existing code has no such registry, build one from the existing sequence without reordering or changing any stage.
-- Validate STAGE against the registry BEFORE creating any run folder. Unknown name: print the valid names, exit code 2, create nothing.
-- Refuse, before creating anything, if any stage up to and including STAGE has uses_llm = true. Print which stage and that the run would call the LLM. Exit code 3.
-- Otherwise: run stages in order. Before each stage, check whether the stop point was already passed; if so, do not start it. After STAGE completes, write `pipeline_stop.json` in the run folder (stage, run_id, UTC timestamp, list of stages completed) and exit 0.
-- Without --stop-after, the behaviour is unchanged.
-
-B. LLM kill switch
-- When --stop-after is set, the orchestrator sets the environment variable LLM_DISABLED=1 for its own process before the first stage runs.
-- The LLM client (module from 0.3) checks LLM_DISABLED at the entry of every call and raises LLMDisabledError before any network activity. This is in addition to the registry check, not instead of it.
-
-Tests (tests/unit/test_orchestrator_stop.py). Stages and the LLM client are patched with fakes that record calls; no real LLM or network is used.
-- `--stop-after context` on tests/fixtures/api_server (or a fake pipeline with the same stage names) into a temp run folder: exit code 0; pipeline_stop.json exists; analysis_context.txt and context_manifest.json exist (from the real or faked context stage); analysis_result.json does NOT exist; the fake LLM recorder has zero calls; no stage after context was invoked.
-- Unknown stage name: exit code 2, message lists valid names, no run folder created.
-- A stage name that comes after an LLM stage: exit code 3, no run folder created.
-- LLM_DISABLED=1: the real LLM client raises LLMDisabledError, and a socket patched to fail is never touched.
-- Without --stop-after: stage sequence is identical to the baseline list from 0.3c (assert on the registry order).
-- tests/test_orchestrator.py must still pass unchanged.
-Show the full test output.
-
-Show `Compare-Object (Get-Content $env:TEMP\orchestrator_before_bm25.py) (Get-Content standalone_orchestrator.py)` as the diff of the orchestrator, and confirm the only additions are the items above.
-
-## Phase 1: Tokenizer (tests first)
-Create retrieval/tokenizer.py.
-
-Spec:
-- Input: a string. Output: a list of lowercase tokens in order of first occurrence. Keep duplicates here; counting happens later.
-- Split on non-alphanumeric characters.
-- For each identifier-like piece, also split camelCase, PascalCase, acronym boundaries and letter/digit boundaries:
-  - count_vowels gives count, vowels, plus the full identifier count_vowels
-  - VOWELS gives vowels
-  - isPalindrome gives is, palindrome, plus ispalindrome
-  - HTTPResponse gives http, response, plus httpresponse
-  - parseHTTPResponse2 gives parse, http, response, 2, plus parsehttpresponse2
-- The full identifier is emitted once per original identifier, lowercased, only when it contains a split.
-- Drop tokens shorter than MIN_TOKEN_LEN = 2.
-- Stopwords (config): def return self cls if else elif for in is not and or import from as none true false pass try except with while lambda the of to a an. The stopword list applies to split pieces AND full identifiers. So is is dropped from isPalindrome, and the full identifier ispalindrome is kept.
-- Light stemming (config STEM_ENABLED = True), applied to split pieces only, never to full identifiers:
-  - ies -> y
-  - es removed only when the remaining stem is longer than 3 characters
-  - s removed when the word is longer than 3 characters and does not end in ss
-  - ed and ing removed when the remaining stem is at least 3 characters
-  - Examples: validates -> validate, validate -> validate, lengths -> length, process -> process, class -> class.
-- INCLUDE_COMMENTS = True (config). The tokenizer itself receives raw text; the chunk builder decides whether to feed it comment text.
-
-Tests (tests/unit/test_bm25_tokenizer.py), with exact expected lists for every example above and for:
-- stopword drop; minimum length drop; stemming on and off; empty string gives []; unicode letters tokenised (e.g. "café" and a Greek identifier); digit-only tokens dropped; identical output on two runs.
-Run them and show the output. Only continue when they pass.
-
-## Phase 2: Chunks from the index and source (tests first)
-Create retrieval/bm25_chunks.py.
-
-Inputs: index.json and the repo source files on disk.
-
-Rules:
-- One chunk per symbol of kind function, method or constant. Classes produce a SKELETON chunk (CLASS_CHUNK = "skeleton" in config): name, signature, and docstring only, never bodies.
-- Chunk id is the symbol id exactly as in the index.
-- Chunk text = name + signature (if any) + docstring + the source segment read from disk for line_start..line_end inclusive. For constants the segment is the assignment line(s). value_preview may be used only if reading the source fails, and each such case must be listed in the output.
-- FRESHNESS FIRST: before building any chunk, compare each source file's current sha1 with the per-file sha1 in index.json (using the Phase 0.5 hashing). If any differ, raise StaleIndexError listing every changed file. No chunk is built in that case.
-- Test symbols (is_test true) are built and stored with is_test: true, but excluded from search unless INCLUDE_TEST_CHUNKS = True (default False). Default search must never return one.
-- Chunks with zero tokens are stored with token_count 0 and never returned.
-- Chunk record fields: id, kind, file, line_start, line_end, is_test, token_count, term_frequencies (sorted dict: term -> count). Do not store source text in the persisted index.
-
-Tests (tests/unit/test_bm25_chunks.py), using temporary projects built inside the test:
-- One chunk per function, method and constant; class chunk contains no token that appears only in a method body (assert on a unique token).
-- A test function is excluded from default search.
-- Editing a source file after indexing raises StaleIndexError and the message names the file.
-- A decorated function's chunk text starts at the decorator line (taken from the index's line_start).
-- A constant chunk contains the constant name and its value tokens.
-Show the output.
-
-## Phase 3: BM25 scoring and inverted index (tests first)
-Create retrieval/bm25.py. Put the rule for query terms in the module docstring.
-
-Formula (Okapi BM25, implemented here, no library):
-- N = number of searchable chunks (non-test, non-empty).
-- df(t) = number of searchable chunks containing t.
-- IDF(t) = ln( (N - df + 0.5) / (df + 0.5) + 1 )
-- score(chunk, query) = sum over DISTINCT query terms t present in the chunk of IDF(t) * tf * (k1 + 1) / (tf + k1 * (1 - b + b * len(chunk) / avgdl))
-- Defaults from config: k1 = 1.5, b = 0.75. avgdl = mean token_count over searchable chunks.
-- Query terms: each distinct term contributes once. Query repetition only changes the weight: weight = min(query_tf, QUERY_TERM_CAP) with QUERY_TERM_CAP = 2, and the contribution is multiplied by that weight. Document this in the docstring and test it.
-- Inverted index: term -> postings list of (chunk_index, tf), sorted by chunk_index. search reads only the postings for query terms.
-
-API:
-- Bm25Index.build(chunks, params)
-- Bm25Index.save(path)
-- Bm25Index.load(path, index_json_path, repo_root): checks index_content_hash and per-file sha1 (Phase 2 freshness), raising StaleIndexError on mismatch.
-- Bm25Index.search(query_terms: list[str], k: int) -> list[SearchHit]. SearchHit fields: symbol_id, rank, score, breakdown (list of dicts with keys term, df, idf, tf, weight, contribution, sorted by term).
-- Results sorted by (-score, symbol_id). Zero-score hits never returned. At most k returned.
-- An empty query raises ValueError with a clear message.
-
-Persisted file bm25_index.json in the run folder, next to index.json: schema_version "bm25-1.0", index_content_hash copied from index.json, params, N, avgdl, chunks (sorted by id), postings (sorted by term).
-
-Tests (tests/unit/test_bm25_scoring.py):
-- Hand-computed score on a 3-chunk corpus. The expected numbers must be computed in the test by an explicit calculation written there. Do NOT call the implementation's helpers. Tolerance 1e-9.
-- A rare term outranks a common term in the same position.
-- Saturation: tf = 10 scores less than 10 times tf = 1.
-- Length normalisation: a longer chunk with the same tf scores lower.
-- Query cap: a term repeated 5 times in the query scores the same as 2 times.
-- Ties: two identical chunks with different ids come back in id order.
-- Empty query raises ValueError.
-- Round trip: save then load gives identical search results (same ids, scores, breakdowns).
-- A stored index_content_hash that differs raises StaleIndexError on load.
-- Performance: synthetic 50,000 chunks with a Zipf-like vocabulary. Time a 6-term query with time.perf_counter over 20 runs; print the median; assert median < 0.1 s. Print build time too (no limit).
-
-## Phase 4: Query builder from a bug group (tests first)
-Create retrieval/bm25_query.py.
-
-Input: one bug group (real schema from 0.2) and the bug reports it references. Output: query terms and a sources record saying where each term came from.
-
-Sources, in this order, each term deduplicated per source:
-1. The failing test's name, tokenised. The literal tokens "test" and "tests" are removed HERE, in the query builder, not in the tokenizer or stoplist, because every test name contains them and they carry no signal. Document this in the module docstring. Example: test_create_user_validates_password gives create, user, validate, password.
-2. Error type and error message words. For assertion text like "assert True == False", keep identifiers and words; drop pure literals (True, False, None) through the stopword list.
-3. Identifiers in the failing test's body (failing_function_code field), tokenised from identifiers only. String literals are not tokenised.
-4. Function and class names from traceback frames that point into SOURCE files (not tests).
-
-A term from source 1 is kept even if it appears elsewhere. A term present in several sources is kept once in the query, with its repetition count (the index caps it at 2).
-
-query_from_text(text) -> list[str] uses the same tokenizer, for the later retrieve_more path.
-
-Print the query and its sources for each group.
-
-Tests (tests/unit/test_bm25_query.py):
-- A bug-group dict built from the real schema (field names from 0.2). For test_create_user_validates_password on api_server, assert the exact terms and sources.
-- No words from string literals appear in the query.
-- A bug group with empty error messages yields only the test-name terms.
-- "test" and "tests" are absent from the query but present in tokenizer output (proves the removal is in the query builder).
-
-## Phase 5: Build and evaluate over the fixtures (scripts, not tests)
-1. Generate bug groups for each fixture that has failing tests, using the stop-after command with the exact flags confirmed in 0.3. The command shape is:
-   python standalone_orchestrator.py --root "tests\fixtures\<fixture>" --import-root <value from 0.3e> --out-dir "runs\bm25_eval\<fixture>" --stop-after <context stage name from 0.3c>
-   Run for: api_server, data_processor, string_processor, sample_bugs. Print the stages reached and the files written. Confirm analysis_result.json is absent in every run folder. Record any fixture with no failing tests and move on. Never reuse or delete an existing run folder.
-2. For each run folder, build the BM25 index from its index.json and the fixture's source (Phase 2 and 3), and save bm25_index.json in the same folder.
-3. Write scripts/eval_bm25.py. It is evaluation-only and must not be imported by retrieval/ or the orchestrator. For each run folder it:
-   - loads bm25_index.json and bug_groups.json;
-   - builds the query per group and runs search;
-   - prints the query terms and sources, the top 10 hits with score and breakdown;
-   - if tests/answer_keys/<fixture>.json exists, reads it and prints the rank of each true faulty symbol (use the key schema from 0.6). If no key exists, prints "no answer key" and does not score.
-4. From the same script, print: how many true faulty symbols are in the top 1, 3, 5 and 10; the list of misses (rank > 10 or absent); and for each miss one category:
-   (a) query lacked the faulty symbol's vocabulary;
-   (b) faulty code uses no name the test mentions;
-   (c) faulty symbol is a constant that is referenced nowhere;
-   (d) other.
-   Each miss must show evidence: the symbol's tokens and the query terms.
-5. The script writes reports/bm25_eval_BEFORE.md. Do not hand-edit it. Print the report's path and its first 40 lines.
-
-Expectation, for observation only (not a pass criterion): for api_server, UserService._validate_user should appear in the top 10 for test_create_user_validates_password. If it does not, do NOT change weights. Report the exact query terms, the tokens of the symbol, and the scores that explain the rank.
-
-## Phase 6: Safety and integrity checks
-- Select-String -Path retrieval\*.py -Pattern "answer_keys|expected_bugs|answer" must return nothing. Show the output.
-- Select-String -Path retrieval\*.py,standalone_orchestrator.py -Pattern "eval_bm25" must return nothing. Show the output.
-- Fixture comments and docstrings must not contain bug hints. Use a word-boundary match so DEBUG does not count:
-  Select-String -Path tests\fixtures\**\*.py -Pattern "\bBUG\b|should fail|should pass|intentional" -CaseSensitive:$false
-  Report every match. Do not edit fixtures.
-- Indexer integrity: Get-FileHash for indexer\index.py and indexer\models.py, compared with the Phase 0.7 hashes. They must be identical. If not, explain the change, and state whether it happened before this task.
-- Orchestrator: only the items in Phase 0b may differ from the baseline. Show the Compare-Object output again.
-- Show `git diff --stat -- indexer` and explain any listed change.
-
-## Phase 7: Completion checklist and final report
-Print this checklist with PASS, FAIL or BLOCKED, and the evidence (test name or printed output) for each line:
-- Phase 0: orchestrator inventory printed; LLM map printed; decision gate result; field mapping printed.
-- Phase 0b: stop-after and kill-switch tests pass; default run stage sequence unchanged; orchestrator diff limited to the allowed items.
-- Phase 1: tokenizer tests pass.
-- Phase 2: chunk tests pass; stale-file test raises and names the file.
-- Phase 3: scoring tests pass; performance median printed.
-- Phase 4: query tests pass.
-- Phase 5: eval report generated by script for each fixture with failing tests; fixtures without failing tests recorded.
-- Phase 6: leak grep empty; bug-hint grep result shown; indexer hashes unchanged.
-- Full suite: `pytest -q` output. List every failure. State whether each is one of the 6 known test_bug_detector failures. If the number differs, say so and say why.
-
-If any line is FAIL or BLOCKED, do not describe the work as complete.
-
-Final message must contain:
-1. Files created and files modified. Allowed modified files: standalone_orchestrator.py (Phase 0b only), the LLM client module (Phase 0b only), retrieval/config.py (BM25 section only). Anything else must be explained.
-2. Exact PowerShell commands to rerun each phase and the evaluation.
-3. The config values and defaults: k1, b, QUERY_TERM_CAP, MIN_TOKEN_LEN, STEM_ENABLED, the stopword list, INCLUDE_COMMENTS, INCLUDE_TEST_CHUNKS, CLASS_CHUNK.
-4. The eval table per fixture: top-1, top-3, top-5 and top-10 counts, and each miss with its category.
-5. Known limitations: stemming is heuristic; acronym splitting is approximate; comments can leak hints in real repos; BM25 alone cannot separate tied symbols beyond token overlap; the stop-after path depends on the grouper not calling the LLM.
-6. Questions you could not answer confidently.
-7. Output of `git status --short` and `git diff --stat`.
+REPORT FORMAT:
+- Section per task, numbered to match above.
+- Every claim backed by a command, file path, or quoted line.
+- Separate "VERIFIED" (shown with output) from "NOT VERIFIED" (could not
+  check). No "probably" or "likely" without evidence.
+- End with a list of anything that contradicts the project notes.
+- Do not propose fixes yet. Stop after the report.

@@ -559,7 +559,7 @@ class TestSchemaVersion:
     """Test that schema version is consistent across all entry points."""
     
     def test_orchestrator_emits_schema_12(self, temp_project):
-        """Test that standalone_orchestrator emits schema 1.2."""
+        """Test that orchestrator emits schema 1.2."""
         import sys
         import subprocess
         
@@ -579,7 +579,7 @@ def test_hello():
         # Run orchestrator
         result = subprocess.run(
             [
-                sys.executable, "standalone_orchestrator.py",
+                sys.executable, "orchestrator.py",
                 "--root", str(temp_project),
                 "--import-root", "src",
                 "--out-dir", str(temp_project / "runs"),
