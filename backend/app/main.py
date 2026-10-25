@@ -16,13 +16,19 @@ from pydantic import BaseModel
 from .config import settings
 from .database import engine, Base
 from .api import auth, users
+from .api import repositories
+from .api import pipeline_runs
+from .tools.console import configure_console
 
+
+configure_console()
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.agents import BugDetector
 from app.models import BugReport, BugDetectionResult
 from .models import User, Repository
+from .models.pipeline_run import PipelineRun
 
 
 
@@ -89,6 +95,8 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(repositories.router)
+app.include_router(pipeline_runs.router)
 
 # Root endpoint
 @app.get("/")
