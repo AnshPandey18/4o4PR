@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PIPELINE_STEPS } from '../data/mockPipeline';
 import { streamRun, getRunsDirList } from '../services/api';
+import { pollPipelineRun } from '../api/pipelineRuns';
 import './LiveStatus.css';
 
 /* ── elapsed timer ── */
@@ -63,6 +64,8 @@ export default function LiveStatus({ activeRun, onResetRun, onRunComplete }) {
   const [prUrl,            setPrUrl]             = useState(null);
   const [paused,           setPaused]            = useState(false);
   const [backendOnline,    setBackendOnline]      = useState(true);
+  const [bugsDetected,     setBugsDetected]       = useState(null);
+  const [patchesGenerated, setPatchesGenerated]   = useState(null);
 
   const logBodyRef = useRef(null);
   const esRef      = useRef(null);
@@ -79,6 +82,11 @@ export default function LiveStatus({ activeRun, onResetRun, onRunComplete }) {
   const runBug  = activeRun?.bug  || 'Issue #404: pytest failure in auth module';
   const runId   = activeRun?.runId;
 
+  // A run can complete without producing anything: the pipeline succeeded but
+  // found no failing tests. Only claim a patch/PR when one actually exists.
+  const hasGeneratedPatch = (patchesGenerated ?? 0) > 0;
+  const completedWithoutPatch = pipelineStatus === 'completed' && !hasGeneratedPatch;
+
   const timer = useElapsedTimer(pipelineStatus === 'running' && !paused);
 
   /* auto-scroll logs */
@@ -93,6 +101,67 @@ export default function LiveStatus({ activeRun, onResetRun, onRunComplete }) {
       setConsoleLogs(['[INFO] No active backend run. Please start a run from the Trigger page.']);
       setPipelineStatus('idle');
       return;
+    }
+
+    // Database-backed pipeline runs are observed through the pipeline-run
+    // status API, because they execute outside the in-memory run store.
+    if (activeRun?.source === 'pipeline') {
+      setConsoleLogs(['[INFO] Waiting for the orchestrator to pick up the run…']);
+      let cancelled = false;
+
+      pollPipelineRun(runId, (run) => {
+        if (cancelled) return;
+
+        const label = (run.status || '').toUpperCase();
+        const terminal = ['completed', 'failed', 'cancelled'].includes(run.status);
+
+        if (terminal) {
+          const stepIndex = run.status === 'completed' ? PIPELINE_STEPS.length : PIPELINE_STEPS.length - 1;
+          setCurrentStepIndex(stepIndex);
+          setProgress(run.status === 'completed' ? 100 : 65);
+          setPipelineStatus(run.status === 'cancelled' ? 'failed' : run.status);
+          setBugsDetected(run.bugs_detected ?? 0);
+          setPatchesGenerated(run.patches_generated ?? 0);
+          setConsoleLogs(prev => [
+            ...prev,
+            `[STATUS] Pipeline ${label}`,
+            `[INFO] Bugs detected: ${run.bugs_detected ?? 0}`,
+            `[INFO] Patches generated: ${run.patches_generated ?? 0}`,
+            ...(run.error_message ? [`[ERROR] ${run.error_message}`] : []),
+          ]);
+        } else {
+          const stepIndex = run.status === 'queued' ? 0 : 1;
+          setCurrentStepIndex(stepIndex);
+          setProgress(run.status === 'queued' ? 12 : 48);
+          setPipelineStatus('running');
+          setConsoleLogs(prev => [
+            ...prev,
+            `[STATUS] Pipeline ${label}`,
+            ...(run.status === 'queued'
+              ? ['[INFO] Cloning repository and preparing the workspace…']
+              : ['[INFO] Running analysis-to-patch pipeline…']),
+          ]);
+        }
+      }).then((run) => {
+        if (cancelled) return;
+        onRunComplete?.({
+          runId,
+          runDir: run.output_dir ? String(run.output_dir).split(/[\\/]/).pop() : null,
+          status: run.status,
+          bugsDetected: run.bugs_detected,
+          patchesGenerated: run.patches_generated,
+          durationMs: run.duration_seconds ? run.duration_seconds * 1000 : null,
+          repo: runRepo,
+          bug: runBug,
+        });
+      }).catch(() => {
+        if (cancelled) return;
+        setBackendOnline(false);
+        setPipelineStatus('failed');
+        setConsoleLogs(prev => [...prev, '[ERROR] Could not read the pipeline run status from the backend.']);
+      });
+
+      return () => { cancelled = true; };
     }
 
     // Connect to real SSE stream
@@ -126,6 +195,8 @@ export default function LiveStatus({ activeRun, onResetRun, onRunComplete }) {
         if (data.finished) {
           setPipelineStatus(data.status);
           setProgress(data.status === 'completed' ? 100 : 65);
+          setBugsDetected(data.bugs_detected ?? 0);
+          setPatchesGenerated(data.patches_generated ?? 0);
           es.close();
           if (data.run_dir) {
             getRunsDirList().then(result => {
@@ -162,7 +233,7 @@ export default function LiveStatus({ activeRun, onResetRun, onRunComplete }) {
     };
 
     return () => es.close();
-  }, [runId]);
+  }, [runId, activeRun?.source]);
 
   const handleBack = () => { onResetRun?.(); navigate('/run'); };
 
@@ -357,9 +428,13 @@ export default function LiveStatus({ activeRun, onResetRun, onRunComplete }) {
                 <div className="ls2-outcome-body">
                   <div className="ls2-outcome-head">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                    Repair Successfully Executed
+                    {completedWithoutPatch ? 'Pipeline Completed' : 'Repair Successfully Executed'}
                   </div>
-                  <p className="ls2-outcome-desc">Fix generated, validated against pytest docker sandbox, and submitted as a pull request.</p>
+                  <p className="ls2-outcome-desc">
+                    {completedWithoutPatch
+                      ? `No failing tests were detected (${bugsDetected ?? 0} bugs), so no patch or pull request was generated.`
+                      : 'Fix generated, validated against pytest docker sandbox, and submitted as a pull request.'}
+                  </p>
 
                   {/* ── Past Reports Dropdown ── */}
                   {reportDirs.length > 0 && (
@@ -474,10 +549,12 @@ export default function LiveStatus({ activeRun, onResetRun, onRunComplete }) {
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                       View Full Report
                     </button>
-                    <a href={prUrl || `https://github.com/${runRepo}/pull/73`} target="_blank" rel="noopener noreferrer" className="ls2-pr-link">
-                      View Pull Request on GitHub
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
-                    </a>
+                    {prUrl && (
+                      <a href={prUrl} target="_blank" rel="noopener noreferrer" className="ls2-pr-link">
+                        View Pull Request on GitHub
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+                      </a>
+                    )}
                     <button className="ls2-btn-outline" onClick={handleBack}>Reconfigure Run</button>
                   </div>
                 </div>

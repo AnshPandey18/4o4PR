@@ -1,0 +1,5 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# tests/fixtures/sample_bugs is pipeline input data (it contains intentionally
+# broken code) and must not be collected as part of the test suite.
+norecursedirs = ["tests/fixtures", "venv", "runs", "repos", ".git"]

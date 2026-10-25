@@ -24,6 +24,24 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: 4o4_redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - 4o4_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # FastAPI Backend
   backend:
     build: ./backend
@@ -34,6 +52,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgresql://admin:admin123@postgres:5432/4o4_db
       SECRET_KEY: AmQX6_sk74bBJ_JE7rAbYiAIucBMEmbHM7ioqMitp-E
@@ -41,11 +61,16 @@ services:
       ACCESS_TOKEN_EXPIRE_MINUTES: 60
       PROJECT_NAME: 4o4PR
       DEBUG: "True"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 4
+      REDIS_DECODE_RESPONSES: "True"
     networks:
       - 4o4_network
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
   4o4_network:
