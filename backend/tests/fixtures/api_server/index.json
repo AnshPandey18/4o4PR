@@ -1,0 +1,2499 @@
+{
+  "schema_version": "1.2",
+  "run_id": "r_20261023_151001",
+  "content_hash": "c2213cb7ed8bd630c433e959cb0d84e38fe39fc34bb147a3eb60a58ffb541064",
+  "generated_at": "2026-10-23T15:10:01.866545Z",
+  "import_roots": [
+    "src",
+    "tests"
+  ],
+  "files": {
+    "tests/fixtures/api_server/src/__init__.py": {
+      "kind": "test",
+      "module": null,
+      "lines": 4,
+      "sha1": "a09f6f24ab22eb1f3f7089592651330697d26328",
+      "parse_ok": true,
+      "docstring": "API server package.",
+      "imports": [
+        {
+          "style": "from",
+          "level": 0,
+          "line": 3,
+          "module": "server",
+          "names": [
+            {
+              "name": "APIServer",
+              "asname": null
+            }
+          ],
+          "resolved_file": "src/server.py"
+        },
+        {
+          "style": "from",
+          "level": 0,
+          "line": 4,
+          "module": "services",
+          "names": [
+            {
+              "name": "UserService",
+              "asname": null
+            },
+            {
+              "name": "SessionManager",
+              "asname": null
+            }
+          ],
+          "resolved_file": "src/services.py"
+        }
+      ]
+    },
+    "tests/fixtures/api_server/src/auth.py": {
+      "kind": "test",
+      "module": "auth",
+      "lines": 42,
+      "sha1": "22cf31cb6e02f4e3c3120656d1e1a9a43ba3334f",
+      "parse_ok": true,
+      "docstring": "Authentication and authorization utilities.",
+      "imports": [
+        {
+          "style": "import",
+          "level": 0,
+          "line": 3,
+          "module": "hashlib",
+          "names": [
+            {
+              "name": "hashlib",
+              "asname": null
+            }
+          ],
+          "resolved_file": null
+        },
+        {
+          "style": "from",
+          "level": 0,
+          "line": 4,
+          "module": "config",
+          "names": [
+            {
+              "name": "SECRET_KEY",
+              "asname": null
+            },
+            {
+              "name": "TOKEN_EXPIRY",
+              "asname": null
+            }
+          ],
+          "resolved_file": "src/config.py"
+        }
+      ]
+    },
+    "tests/fixtures/api_server/src/config.py": {
+      "kind": "test",
+      "module": "config",
+      "lines": 31,
+      "sha1": "856ae119ea1f33936e16ba668b40eca117be0286",
+      "parse_ok": true,
+      "docstring": "Configuration and constants for API server.",
+      "imports": []
+    },
+    "tests/fixtures/api_server/src/server.py": {
+      "kind": "test",
+      "module": "server",
+      "lines": 71,
+      "sha1": "d60099f0d14178739fdadea4e2d48056de2af22e",
+      "parse_ok": true,
+      "docstring": "API Server implementation.",
+      "imports": [
+        {
+          "style": "from",
+          "level": 0,
+          "line": 3,
+          "module": "config",
+          "names": [
+            {
+              "name": "SERVER_HOST",
+              "asname": null
+            },
+            {
+              "name": "SERVER_PORT",
+              "asname": null
+            },
+            {
+              "name": "DEBUG",
+              "asname": null
+            }
+          ],
+          "resolved_file": "src/config.py"
+        },
+        {
+          "style": "from",
+          "level": 0,
+          "line": 4,
+          "module": "services",
+          "names": [
+            {
+              "name": "UserService",
+              "asname": null
+            },
+            {
+              "name": "SessionManager",
+              "asname": null
+            }
+          ],
+          "resolved_file": "src/services.py"
+        },
+        {
+          "style": "from",
+          "level": 0,
+          "line": 5,
+          "module": "auth",
+          "names": [
+            {
+              "name": "authenticate",
+              "asname": null
+            },
+            {
+              "name": "generate_token",
+              "asname": null
+            }
+          ],
+          "resolved_file": "src/auth.py"
+        }
+      ]
+    },
+    "tests/fixtures/api_server/src/services.py": {
+      "kind": "test",
+      "module": "services",
+      "lines": 102,
+      "sha1": "9aac4abb6d0719bee6055f93b2b62245544af277",
+      "parse_ok": true,
+      "docstring": "Business logic services.",
+      "imports": [
+        {
+          "style": "from",
+          "level": 0,
+          "line": 3,
+          "module": "config",
+          "names": [
+            {
+              "name": "MIN_PASSWORD_LENGTH",
+              "asname": null
+            },
+            {
+              "name": "MAX_PASSWORD_LENGTH",
+              "asname": null
+            },
+            {
+              "name": "MIN_USERNAME_LENGTH",
+              "asname": null
+            },
+            {
+              "name": "MAX_USERNAME_LENGTH",
+              "asname": null
+            },
+            {
+              "name": "VALID_EMAIL_DOMAINS",
+              "asname": null
+            },
+            {
+              "name": "ADMIN_ROLE",
+              "asname": null
+            },
+            {
+              "name": "USER_ROLE",
+              "asname": null
+            }
+          ],
+          "resolved_file": "src/config.py"
+        },
+        {
+          "style": "from",
+          "level": 0,
+          "line": 8,
+          "module": "auth",
+          "names": [
+            {
+              "name": "_hash_password",
+              "asname": null
+            },
+            {
+              "name": "InvalidTokenException",
+              "asname": null
+            },
+            {
+              "name": "generate_token",
+              "asname": null
+            }
+          ],
+          "resolved_file": "src/auth.py"
+        }
+      ]
+    },
+    "tests/fixtures/api_server/tests/__init__.py": {
+      "kind": "test",
+      "module": null,
+      "lines": 1,
+      "sha1": "9006ea2ed1ca8eb389f149ae020bdae5479ee953",
+      "parse_ok": true,
+      "docstring": "Tests for API server.",
+      "imports": []
+    },
+    "tests/fixtures/api_server/tests/test_auth.py": {
+      "kind": "test",
+      "module": "test_auth",
+      "lines": 44,
+      "sha1": "08b507b98d08328d540b98044ed0b412cbe7b085",
+      "parse_ok": true,
+      "docstring": "Tests for authentication module.",
+      "imports": [
+        {
+          "style": "import",
+          "level": 0,
+          "line": 3,
+          "module": "sys",
+          "names": [
+            {
+              "name": "sys",
+              "asname": null
+            }
+          ],
+          "resolved_file": null
+        },
+        {
+          "style": "from",
+          "level": 0,
+          "line": 4,
+          "module": "pathlib",
+          "names": [
+            {
+              "name": "Path",
+              "asname": null
+            }
+          ],
+          "resolved_file": null
+        },
+        {
+          "style": "from",
+          "level": 0,
+          "line": 8,
+          "module": "auth",
+          "names": [
+            {
+              "name": "_hash_password",
+              "asname": null
+            },
+            {
+              "name": "validate_password",
+              "asname": null
+            },
+            {
+              "name": "generate_token",
+              "asname": null
+            },
+            {
+              "name": "InvalidTokenException",
+              "asname": null
+            }
+          ],
+          "resolved_file": "src/auth.py"
+        },
+        {
+          "style": "from",
+          "level": 0,
+          "line": 9,
+          "module": "config",
+          "names": [
+            {
+              "name": "SECRET_KEY",
+              "asname": null
+            }
+          ],
+          "resolved_file": "src/config.py"
+        }
+      ]
+    },
+    "tests/fixtures/api_server/tests/test_server.py": {
+      "kind": "test",
+      "module": "test_server",
+      "lines": 54,
+      "sha1": "8592563c8a42fd64200729c734bcc008359f52aa",
+      "parse_ok": true,
+      "docstring": "Tests for API server.",
+      "imports": [
+        {
+          "style": "import",
+          "level": 0,
+          "line": 3,
+          "module": "sys",
+          "names": [
+            {
+              "name": "sys",
+              "asname": null
+            }
+          ],
+          "resolved_file": null
+        },
+        {
+          "style": "from",
+          "level": 0,
+          "line": 4,
+          "module": "pathlib",
+          "names": [
+            {
+              "name": "Path",
+              "asname": null
+            }
+          ],
+          "resolved_file": null
+        },
+        {
+          "style": "from",
+          "level": 0,
+          "line": 8,
+          "module": "server",
+          "names": [
+            {
+              "name": "APIServer",
+              "asname": null
+            }
+          ],
+          "resolved_file": "src/server.py"
+        },
+        {
+          "style": "from",
+          "level": 0,
+          "line": 9,
+          "module": "services",
+          "names": [
+            {
+              "name": "UserService",
+              "asname": null
+            }
+          ],
+          "resolved_file": "src/services.py"
+        },
+        {
+          "style": "from",
+          "level": 0,
+          "line": 10,
+          "module": "config",
+          "names": [
+            {
+              "name": "SERVER_PORT",
+              "asname": null
+            },
+            {
+              "name": "ADMIN_ROLE",
+              "asname": null
+            }
+          ],
+          "resolved_file": "src/config.py"
+        }
+      ]
+    },
+    "tests/fixtures/api_server/tests/test_services.py": {
+      "kind": "test",
+      "module": "test_services",
+      "lines": 94,
+      "sha1": "dfca08e4b61b2e04461af6d37c1e0f61dc75a56f",
+      "parse_ok": true,
+      "docstring": "Tests for business logic services.",
+      "imports": [
+        {
+          "style": "import",
+          "level": 0,
+          "line": 3,
+          "module": "sys",
+          "names": [
+            {
+              "name": "sys",
+              "asname": null
+            }
+          ],
+          "resolved_file": null
+        },
+        {
+          "style": "from",
+          "level": 0,
+          "line": 4,
+          "module": "pathlib",
+          "names": [
+            {
+              "name": "Path",
+              "asname": null
+            }
+          ],
+          "resolved_file": null
+        },
+        {
+          "style": "from",
+          "level": 0,
+          "line": 8,
+          "module": "services",
+          "names": [
+            {
+              "name": "UserService",
+              "asname": null
+            },
+            {
+              "name": "SessionManager",
+              "asname": null
+            }
+          ],
+          "resolved_file": "src/services.py"
+        },
+        {
+          "style": "from",
+          "level": 0,
+          "line": 9,
+          "module": "config",
+          "names": [
+            {
+              "name": "MIN_PASSWORD_LENGTH",
+              "asname": null
+            },
+            {
+              "name": "MAX_PASSWORD_LENGTH",
+              "asname": null
+            },
+            {
+              "name": "VALID_EMAIL_DOMAINS",
+              "asname": null
+            }
+          ],
+          "resolved_file": "src/config.py"
+        },
+        {
+          "style": "from",
+          "level": 0,
+          "line": 10,
+          "module": "auth",
+          "names": [
+            {
+              "name": "InvalidTokenException",
+              "asname": null
+            }
+          ],
+          "resolved_file": "src/auth.py"
+        }
+      ]
+    }
+  },
+  "symbols": {
+    "tests/fixtures/api_server/src/auth.py::AuthException": {
+      "kind": "class",
+      "name": "AuthException",
+      "file": "tests/fixtures/api_server/src/auth.py",
+      "line_start": 7,
+      "line_end": 9,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Base authentication exception.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 3,
+      "char_count": 81,
+      "approx_tokens": 20,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/auth.py::InvalidTokenException": {
+      "kind": "class",
+      "name": "InvalidTokenException",
+      "file": "tests/fixtures/api_server/src/auth.py",
+      "line_start": 12,
+      "line_end": 14,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Token is invalid or expired.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 3,
+      "char_count": 91,
+      "approx_tokens": 22,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/auth.py::_hash_password": {
+      "kind": "function",
+      "name": "_hash_password",
+      "file": "tests/fixtures/api_server/src/auth.py",
+      "line_start": 17,
+      "line_end": 19,
+      "signature": "(password: str) -> str",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Hash a password using SHA256.",
+      "parent_class": null,
+      "is_test": false,
+      "unresolved_calls": 3,
+      "unresolved": [
+        {
+          "expr": "hashlib.sha256((password + SECRET_KEY).encode()).hexdigest",
+          "name": "hexdigest",
+          "line": 19,
+          "reason": "dynamic_call"
+        },
+        {
+          "expr": "hashlib.sha256",
+          "name": "sha256",
+          "line": 19,
+          "reason": "external_module"
+        },
+        {
+          "expr": "(password + SECRET_KEY).encode",
+          "name": "encode",
+          "line": 19,
+          "reason": "dynamic_call"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 3,
+      "char_count": 153,
+      "approx_tokens": 38,
+      "value_preview": null,
+      "references": [
+        "tests/fixtures/api_server/src/config.py::SECRET_KEY"
+      ]
+    },
+    "tests/fixtures/api_server/src/auth.py::validate_password": {
+      "kind": "function",
+      "name": "validate_password",
+      "file": "tests/fixtures/api_server/src/auth.py",
+      "line_start": 22,
+      "line_end": 27,
+      "signature": "(password: str, hashed: str) -> bool",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Validate a password against hash.",
+      "parent_class": null,
+      "is_test": false,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 6,
+      "char_count": 196,
+      "approx_tokens": 49,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/auth.py::generate_token": {
+      "kind": "function",
+      "name": "generate_token",
+      "file": "tests/fixtures/api_server/src/auth.py",
+      "line_start": 30,
+      "line_end": 32,
+      "signature": "(user_id: str) -> str",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Generate an authentication token.",
+      "parent_class": null,
+      "is_test": false,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 3,
+      "char_count": 127,
+      "approx_tokens": 31,
+      "value_preview": null,
+      "references": [
+        "tests/fixtures/api_server/src/config.py::SECRET_KEY"
+      ]
+    },
+    "tests/fixtures/api_server/src/auth.py::authenticate": {
+      "kind": "function",
+      "name": "authenticate",
+      "file": "tests/fixtures/api_server/src/auth.py",
+      "line_start": 35,
+      "line_end": 42,
+      "signature": "(func)",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Decorator to require authentication.",
+      "parent_class": null,
+      "is_test": false,
+      "unresolved_calls": 1,
+      "unresolved": [
+        {
+          "expr": "func",
+          "name": "func",
+          "line": 40,
+          "reason": "parameter_call"
+        }
+      ],
+      "builtin_calls": [
+        "get"
+      ],
+      "line_count": 8,
+      "char_count": 271,
+      "approx_tokens": 67,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::SECRET_KEY": {
+      "kind": "constant",
+      "name": "SECRET_KEY",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 41,
+      "approx_tokens": 10,
+      "value_preview": "SECRET_KEY = \"dev-key-not-for-production\"",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::TOKEN_EXPIRY": {
+      "kind": "constant",
+      "name": "TOKEN_EXPIRY",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 30,
+      "approx_tokens": 7,
+      "value_preview": "TOKEN_EXPIRY = 3600  # seconds",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::MAX_LOGIN_ATTEMPTS": {
+      "kind": "constant",
+      "name": "MAX_LOGIN_ATTEMPTS",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 22,
+      "approx_tokens": 5,
+      "value_preview": "MAX_LOGIN_ATTEMPTS = 5",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::LOCKOUT_DURATION": {
+      "kind": "constant",
+      "name": "LOCKOUT_DURATION",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 36,
+      "approx_tokens": 9,
+      "value_preview": "LOCKOUT_DURATION = 900  # 15 minutes",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::DB_HOST": {
+      "kind": "constant",
+      "name": "DB_HOST",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 10,
+      "line_end": 10,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 21,
+      "approx_tokens": 5,
+      "value_preview": "DB_HOST = \"localhost\"",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::DB_PORT": {
+      "kind": "constant",
+      "name": "DB_PORT",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 11,
+      "line_end": 11,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 14,
+      "approx_tokens": 3,
+      "value_preview": "DB_PORT = 5432",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::DB_NAME": {
+      "kind": "constant",
+      "name": "DB_NAME",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 12,
+      "line_end": 12,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 18,
+      "approx_tokens": 4,
+      "value_preview": "DB_NAME = \"api_db\"",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::DB_USER": {
+      "kind": "constant",
+      "name": "DB_USER",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 13,
+      "line_end": 13,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 20,
+      "approx_tokens": 5,
+      "value_preview": "DB_USER = \"postgres\"",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::DB_PASSWORD": {
+      "kind": "constant",
+      "name": "DB_PASSWORD",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 14,
+      "line_end": 14,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 24,
+      "approx_tokens": 6,
+      "value_preview": "DB_PASSWORD = \"password\"",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::MIN_PASSWORD_LENGTH": {
+      "kind": "constant",
+      "name": "MIN_PASSWORD_LENGTH",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 17,
+      "line_end": 17,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 23,
+      "approx_tokens": 5,
+      "value_preview": "MIN_PASSWORD_LENGTH = 8",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::MAX_PASSWORD_LENGTH": {
+      "kind": "constant",
+      "name": "MAX_PASSWORD_LENGTH",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 18,
+      "line_end": 18,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 25,
+      "approx_tokens": 6,
+      "value_preview": "MAX_PASSWORD_LENGTH = 128",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::MIN_USERNAME_LENGTH": {
+      "kind": "constant",
+      "name": "MIN_USERNAME_LENGTH",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 19,
+      "line_end": 19,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 23,
+      "approx_tokens": 5,
+      "value_preview": "MIN_USERNAME_LENGTH = 3",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::MAX_USERNAME_LENGTH": {
+      "kind": "constant",
+      "name": "MAX_USERNAME_LENGTH",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 20,
+      "line_end": 20,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 24,
+      "approx_tokens": 6,
+      "value_preview": "MAX_USERNAME_LENGTH = 32",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::VALID_EMAIL_DOMAINS": {
+      "kind": "constant",
+      "name": "VALID_EMAIL_DOMAINS",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 21,
+      "line_end": 21,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 49,
+      "approx_tokens": 12,
+      "value_preview": "VALID_EMAIL_DOMAINS = [\"example.com\", \"test.com\"]",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::SERVER_HOST": {
+      "kind": "constant",
+      "name": "SERVER_HOST",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 24,
+      "line_end": 24,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 23,
+      "approx_tokens": 5,
+      "value_preview": "SERVER_HOST = \"0.0.0.0\"",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::SERVER_PORT": {
+      "kind": "constant",
+      "name": "SERVER_PORT",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 25,
+      "line_end": 25,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 18,
+      "approx_tokens": 4,
+      "value_preview": "SERVER_PORT = 8000",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::DEBUG": {
+      "kind": "constant",
+      "name": "DEBUG",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 26,
+      "line_end": 26,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 12,
+      "approx_tokens": 3,
+      "value_preview": "DEBUG = True",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::ADMIN_ROLE": {
+      "kind": "constant",
+      "name": "ADMIN_ROLE",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 29,
+      "line_end": 29,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 20,
+      "approx_tokens": 5,
+      "value_preview": "ADMIN_ROLE = \"admin\"",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::USER_ROLE": {
+      "kind": "constant",
+      "name": "USER_ROLE",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 30,
+      "line_end": 30,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 18,
+      "approx_tokens": 4,
+      "value_preview": "USER_ROLE = \"user\"",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/config.py::GUEST_ROLE": {
+      "kind": "constant",
+      "name": "GUEST_ROLE",
+      "file": "tests/fixtures/api_server/src/config.py",
+      "line_start": 31,
+      "line_end": 31,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 1,
+      "char_count": 20,
+      "approx_tokens": 5,
+      "value_preview": "GUEST_ROLE = \"guest\"",
+      "references": []
+    },
+    "tests/fixtures/api_server/src/server.py::APIServer": {
+      "kind": "class",
+      "name": "APIServer",
+      "file": "tests/fixtures/api_server/src/server.py",
+      "line_start": 8,
+      "line_end": 71,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Main API server class.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 64,
+      "char_count": 1869,
+      "approx_tokens": 467,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/server.py::APIServer.__init__": {
+      "kind": "method",
+      "name": "__init__",
+      "file": "tests/fixtures/api_server/src/server.py",
+      "line_start": 11,
+      "line_end": 19,
+      "signature": "(self)",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Initialize server and services.",
+      "parent_class": "tests/fixtures/api_server/src/server.py::APIServer",
+      "is_test": false,
+      "unresolved_calls": 2,
+      "unresolved": [
+        {
+          "expr": "UserService",
+          "name": "UserService",
+          "line": 18,
+          "reason": "not_found"
+        },
+        {
+          "expr": "SessionManager",
+          "name": "SessionManager",
+          "line": 19,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 9,
+      "char_count": 308,
+      "approx_tokens": 77,
+      "value_preview": null,
+      "references": [
+        "tests/fixtures/api_server/src/config.py::SERVER_HOST",
+        "tests/fixtures/api_server/src/config.py::SERVER_PORT"
+      ]
+    },
+    "tests/fixtures/api_server/src/server.py::APIServer._initialize_database": {
+      "kind": "method",
+      "name": "_initialize_database",
+      "file": "tests/fixtures/api_server/src/server.py",
+      "line_start": 21,
+      "line_end": 23,
+      "signature": "(self)",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Initialize database connection.",
+      "parent_class": "tests/fixtures/api_server/src/server.py::APIServer",
+      "is_test": false,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 3,
+      "char_count": 114,
+      "approx_tokens": 28,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/server.py::APIServer._initialize_routes": {
+      "kind": "method",
+      "name": "_initialize_routes",
+      "file": "tests/fixtures/api_server/src/server.py",
+      "line_start": 25,
+      "line_end": 31,
+      "signature": "(self)",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Initialize API routes.",
+      "parent_class": "tests/fixtures/api_server/src/server.py::APIServer",
+      "is_test": false,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 7,
+      "char_count": 242,
+      "approx_tokens": 60,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/server.py::APIServer._handle_login": {
+      "kind": "method",
+      "name": "_handle_login",
+      "file": "tests/fixtures/api_server/src/server.py",
+      "line_start": 33,
+      "line_end": 40,
+      "signature": "(self, username: str, password: str)",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Handle login request.",
+      "parent_class": "tests/fixtures/api_server/src/server.py::APIServer",
+      "is_test": false,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 8,
+      "char_count": 306,
+      "approx_tokens": 76,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/server.py::APIServer._handle_logout": {
+      "kind": "method",
+      "name": "_handle_logout",
+      "file": "tests/fixtures/api_server/src/server.py",
+      "line_start": 42,
+      "line_end": 45,
+      "signature": "(self, token: str)",
+      "decorators": [
+        "authenticate"
+      ],
+      "decorator_targets": [
+        "tests/fixtures/api_server/src/auth.py::authenticate"
+      ],
+      "docstring": "Handle logout request.",
+      "parent_class": "tests/fixtures/api_server/src/server.py::APIServer",
+      "is_test": false,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 4,
+      "char_count": 137,
+      "approx_tokens": 34,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/server.py::APIServer._handle_users": {
+      "kind": "method",
+      "name": "_handle_users",
+      "file": "tests/fixtures/api_server/src/server.py",
+      "line_start": 47,
+      "line_end": 50,
+      "signature": "(self, token: str)",
+      "decorators": [
+        "authenticate"
+      ],
+      "decorator_targets": [
+        "tests/fixtures/api_server/src/auth.py::authenticate"
+      ],
+      "docstring": "Handle users request.",
+      "parent_class": "tests/fixtures/api_server/src/server.py::APIServer",
+      "is_test": false,
+      "unresolved_calls": 1,
+      "unresolved": [
+        {
+          "expr": "self.user_service.users.keys",
+          "name": "keys",
+          "line": 50,
+          "reason": "attribute_type_unknown"
+        }
+      ],
+      "builtin_calls": [
+        "list"
+      ],
+      "line_count": 4,
+      "char_count": 157,
+      "approx_tokens": 39,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/server.py::APIServer.start": {
+      "kind": "method",
+      "name": "start",
+      "file": "tests/fixtures/api_server/src/server.py",
+      "line_start": 52,
+      "line_end": 67,
+      "signature": "(self)",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Start the server.",
+      "parent_class": "tests/fixtures/api_server/src/server.py::APIServer",
+      "is_test": false,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [
+        "print"
+      ],
+      "line_count": 16,
+      "char_count": 429,
+      "approx_tokens": 107,
+      "value_preview": null,
+      "references": [
+        "tests/fixtures/api_server/src/config.py::DEBUG"
+      ]
+    },
+    "tests/fixtures/api_server/src/server.py::APIServer.stop": {
+      "kind": "method",
+      "name": "stop",
+      "file": "tests/fixtures/api_server/src/server.py",
+      "line_start": 69,
+      "line_end": 71,
+      "signature": "(self)",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Stop the server.",
+      "parent_class": "tests/fixtures/api_server/src/server.py::APIServer",
+      "is_test": false,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 3,
+      "char_count": 79,
+      "approx_tokens": 19,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/services.py::BaseService": {
+      "kind": "class",
+      "name": "BaseService",
+      "file": "tests/fixtures/api_server/src/services.py",
+      "line_start": 11,
+      "line_end": 16,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Base service class.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 6,
+      "char_count": 126,
+      "approx_tokens": 31,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/services.py::BaseService.__init__": {
+      "kind": "method",
+      "name": "__init__",
+      "file": "tests/fixtures/api_server/src/services.py",
+      "line_start": 14,
+      "line_end": 16,
+      "signature": "(self)",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": "tests/fixtures/api_server/src/services.py::BaseService",
+      "is_test": false,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 3,
+      "char_count": 72,
+      "approx_tokens": 18,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/services.py::UserService": {
+      "kind": "class",
+      "name": "UserService",
+      "file": "tests/fixtures/api_server/src/services.py",
+      "line_start": 19,
+      "line_end": 84,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "User management service.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 66,
+      "char_count": 2128,
+      "approx_tokens": 532,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/services.py::UserService._validate_user": {
+      "kind": "method",
+      "name": "_validate_user",
+      "file": "tests/fixtures/api_server/src/services.py",
+      "line_start": 22,
+      "line_end": 24,
+      "signature": "(self, username: str, password: str, email: str) -> bool",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Validate user data.",
+      "parent_class": "tests/fixtures/api_server/src/services.py::UserService",
+      "is_test": false,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 3,
+      "char_count": 133,
+      "approx_tokens": 33,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/services.py::UserService._validate_email": {
+      "kind": "method",
+      "name": "_validate_email",
+      "file": "tests/fixtures/api_server/src/services.py",
+      "line_start": 26,
+      "line_end": 34,
+      "signature": "(self, email: str) -> bool",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Validate email format and domain.",
+      "parent_class": "tests/fixtures/api_server/src/services.py::UserService",
+      "is_test": false,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [
+        "split"
+      ],
+      "line_count": 9,
+      "char_count": 305,
+      "approx_tokens": 76,
+      "value_preview": null,
+      "references": [
+        "tests/fixtures/api_server/src/config.py::VALID_EMAIL_DOMAINS"
+      ]
+    },
+    "tests/fixtures/api_server/src/services.py::UserService.create_user": {
+      "kind": "method",
+      "name": "create_user",
+      "file": "tests/fixtures/api_server/src/services.py",
+      "line_start": 36,
+      "line_end": 57,
+      "signature": "(self, username: str, password: str, email: str) -> bool",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Create a new user.",
+      "parent_class": "tests/fixtures/api_server/src/services.py::UserService",
+      "is_test": false,
+      "unresolved_calls": 1,
+      "unresolved": [
+        {
+          "expr": "_hash_password",
+          "name": "_hash_password",
+          "line": 46,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 22,
+      "char_count": 649,
+      "approx_tokens": 162,
+      "value_preview": null,
+      "references": [
+        "tests/fixtures/api_server/src/config.py::USER_ROLE"
+      ]
+    },
+    "tests/fixtures/api_server/src/services.py::UserService.update_user": {
+      "kind": "method",
+      "name": "update_user",
+      "file": "tests/fixtures/api_server/src/services.py",
+      "line_start": 59,
+      "line_end": 69,
+      "signature": "(self, username: str, new_password: str) -> bool",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Update user password.",
+      "parent_class": "tests/fixtures/api_server/src/services.py::UserService",
+      "is_test": false,
+      "unresolved_calls": 1,
+      "unresolved": [
+        {
+          "expr": "_hash_password",
+          "name": "_hash_password",
+          "line": 67,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 11,
+      "char_count": 418,
+      "approx_tokens": 104,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/services.py::UserService.authenticate": {
+      "kind": "method",
+      "name": "authenticate",
+      "file": "tests/fixtures/api_server/src/services.py",
+      "line_start": 71,
+      "line_end": 84,
+      "signature": "(self, username: str, password: str) -> str",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Authenticate user and return token.",
+      "parent_class": "tests/fixtures/api_server/src/services.py::UserService",
+      "is_test": false,
+      "unresolved_calls": 4,
+      "unresolved": [
+        {
+          "expr": "generate_token",
+          "name": "generate_token",
+          "line": 82,
+          "reason": "not_found"
+        },
+        {
+          "expr": "InvalidTokenException",
+          "name": "InvalidTokenException",
+          "line": 74,
+          "reason": "not_found"
+        },
+        {
+          "expr": "_hash_password",
+          "name": "_hash_password",
+          "line": 79,
+          "reason": "not_found"
+        },
+        {
+          "expr": "InvalidTokenException",
+          "name": "InvalidTokenException",
+          "line": 80,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 14,
+      "char_count": 527,
+      "approx_tokens": 131,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/services.py::SessionManager": {
+      "kind": "class",
+      "name": "SessionManager",
+      "file": "tests/fixtures/api_server/src/services.py",
+      "line_start": 87,
+      "line_end": 102,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Manage user sessions.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 16,
+      "char_count": 534,
+      "approx_tokens": 133,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/services.py::SessionManager.__init__": {
+      "kind": "method",
+      "name": "__init__",
+      "file": "tests/fixtures/api_server/src/services.py",
+      "line_start": 90,
+      "line_end": 93,
+      "signature": "(self, user_service: UserService)",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Initialize with user service.",
+      "parent_class": "tests/fixtures/api_server/src/services.py::SessionManager",
+      "is_test": false,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [
+        "super"
+      ],
+      "line_count": 4,
+      "char_count": 162,
+      "approx_tokens": 40,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/src/services.py::SessionManager.start_session": {
+      "kind": "method",
+      "name": "start_session",
+      "file": "tests/fixtures/api_server/src/services.py",
+      "line_start": 95,
+      "line_end": 102,
+      "signature": "(self, username: str, password: str) -> str",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Start a session for user.",
+      "parent_class": "tests/fixtures/api_server/src/services.py::SessionManager",
+      "is_test": false,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 8,
+      "char_count": 294,
+      "approx_tokens": 73,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_auth.py::test_hash_password_deterministic": {
+      "kind": "function",
+      "name": "test_hash_password_deterministic",
+      "file": "tests/fixtures/api_server/tests/test_auth.py",
+      "line_start": 12,
+      "line_end": 17,
+      "signature": "()",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Test that password hashing is deterministic.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 2,
+      "unresolved": [
+        {
+          "expr": "_hash_password",
+          "name": "_hash_password",
+          "line": 15,
+          "reason": "not_found"
+        },
+        {
+          "expr": "_hash_password",
+          "name": "_hash_password",
+          "line": 16,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 6,
+      "char_count": 222,
+      "approx_tokens": 55,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_auth.py::test_validate_password_correct": {
+      "kind": "function",
+      "name": "test_validate_password_correct",
+      "file": "tests/fixtures/api_server/tests/test_auth.py",
+      "line_start": 20,
+      "line_end": 24,
+      "signature": "()",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Test password validation with correct password.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 2,
+      "unresolved": [
+        {
+          "expr": "_hash_password",
+          "name": "_hash_password",
+          "line": 23,
+          "reason": "not_found"
+        },
+        {
+          "expr": "validate_password",
+          "name": "validate_password",
+          "line": 24,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 5,
+      "char_count": 216,
+      "approx_tokens": 54,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_auth.py::test_validate_password_incorrect": {
+      "kind": "function",
+      "name": "test_validate_password_incorrect",
+      "file": "tests/fixtures/api_server/tests/test_auth.py",
+      "line_start": 27,
+      "line_end": 31,
+      "signature": "()",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Test password validation with incorrect password.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 2,
+      "unresolved": [
+        {
+          "expr": "_hash_password",
+          "name": "_hash_password",
+          "line": 30,
+          "reason": "not_found"
+        },
+        {
+          "expr": "validate_password",
+          "name": "validate_password",
+          "line": 31,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 5,
+      "char_count": 228,
+      "approx_tokens": 57,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_auth.py::test_generate_token": {
+      "kind": "function",
+      "name": "test_generate_token",
+      "file": "tests/fixtures/api_server/tests/test_auth.py",
+      "line_start": 34,
+      "line_end": 37,
+      "signature": "()",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Test token generation.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 1,
+      "unresolved": [
+        {
+          "expr": "generate_token",
+          "name": "generate_token",
+          "line": 36,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 4,
+      "char_count": 127,
+      "approx_tokens": 31,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_auth.py::test_token_is_unique": {
+      "kind": "function",
+      "name": "test_token_is_unique",
+      "file": "tests/fixtures/api_server/tests/test_auth.py",
+      "line_start": 40,
+      "line_end": 44,
+      "signature": "()",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Test that tokens include some identifier.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 2,
+      "unresolved": [
+        {
+          "expr": "generate_token",
+          "name": "generate_token",
+          "line": 42,
+          "reason": "not_found"
+        },
+        {
+          "expr": "generate_token",
+          "name": "generate_token",
+          "line": 43,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 5,
+      "char_count": 181,
+      "approx_tokens": 45,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_server.py::test_server_initialization": {
+      "kind": "function",
+      "name": "test_server_initialization",
+      "file": "tests/fixtures/api_server/tests/test_server.py",
+      "line_start": 13,
+      "line_end": 17,
+      "signature": "()",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Test server initializes correctly.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 1,
+      "unresolved": [
+        {
+          "expr": "APIServer",
+          "name": "APIServer",
+          "line": 15,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 5,
+      "char_count": 176,
+      "approx_tokens": 44,
+      "value_preview": null,
+      "references": [
+        "tests/fixtures/api_server/src/config.py::SERVER_PORT"
+      ]
+    },
+    "tests/fixtures/api_server/tests/test_server.py::test_server_start": {
+      "kind": "function",
+      "name": "test_server_start",
+      "file": "tests/fixtures/api_server/tests/test_server.py",
+      "line_start": 20,
+      "line_end": 30,
+      "signature": "()",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Test server start sequence.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 1,
+      "unresolved": [
+        {
+          "expr": "APIServer",
+          "name": "APIServer",
+          "line": 25,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 11,
+      "char_count": 291,
+      "approx_tokens": 72,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_server.py::test_server_stop": {
+      "kind": "function",
+      "name": "test_server_stop",
+      "file": "tests/fixtures/api_server/tests/test_server.py",
+      "line_start": 33,
+      "line_end": 40,
+      "signature": "()",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Test server stop.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 1,
+      "unresolved": [
+        {
+          "expr": "APIServer",
+          "name": "APIServer",
+          "line": 35,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 8,
+      "char_count": 187,
+      "approx_tokens": 46,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_server.py::test_server_login_flow": {
+      "kind": "function",
+      "name": "test_server_login_flow",
+      "file": "tests/fixtures/api_server/tests/test_server.py",
+      "line_start": 43,
+      "line_end": 54,
+      "signature": "()",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Test complete login flow.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 2,
+      "unresolved": [
+        {
+          "expr": "APIServer",
+          "name": "APIServer",
+          "line": 45,
+          "reason": "not_found"
+        },
+        {
+          "expr": "server.user_service.create_user",
+          "name": "create_user",
+          "line": 49,
+          "reason": "attribute_type_unknown"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 12,
+      "char_count": 364,
+      "approx_tokens": 91,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_services.py::test_create_user_valid": {
+      "kind": "function",
+      "name": "test_create_user_valid",
+      "file": "tests/fixtures/api_server/tests/test_services.py",
+      "line_start": 13,
+      "line_end": 18,
+      "signature": "()",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Test creating a valid user.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 1,
+      "unresolved": [
+        {
+          "expr": "UserService",
+          "name": "UserService",
+          "line": 15,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 6,
+      "char_count": 240,
+      "approx_tokens": 60,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_services.py::test_create_user_validates_email": {
+      "kind": "function",
+      "name": "test_create_user_validates_email",
+      "file": "tests/fixtures/api_server/tests/test_services.py",
+      "line_start": 21,
+      "line_end": 25,
+      "signature": "()",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Test that user creation validates email.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 1,
+      "unresolved": [
+        {
+          "expr": "UserService",
+          "name": "UserService",
+          "line": 23,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 5,
+      "char_count": 225,
+      "approx_tokens": 56,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_services.py::test_create_user_validates_password": {
+      "kind": "function",
+      "name": "test_create_user_validates_password",
+      "file": "tests/fixtures/api_server/tests/test_services.py",
+      "line_start": 28,
+      "line_end": 32,
+      "signature": "()",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Test password validation on creation.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 1,
+      "unresolved": [
+        {
+          "expr": "UserService",
+          "name": "UserService",
+          "line": 30,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 5,
+      "char_count": 219,
+      "approx_tokens": 54,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_services.py::test_authenticate_valid": {
+      "kind": "function",
+      "name": "test_authenticate_valid",
+      "file": "tests/fixtures/api_server/tests/test_services.py",
+      "line_start": 35,
+      "line_end": 42,
+      "signature": "()",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Test authentication with valid credentials.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 1,
+      "unresolved": [
+        {
+          "expr": "UserService",
+          "name": "UserService",
+          "line": 37,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 8,
+      "char_count": 308,
+      "approx_tokens": 77,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_services.py::test_authenticate_invalid_user": {
+      "kind": "function",
+      "name": "test_authenticate_invalid_user",
+      "file": "tests/fixtures/api_server/tests/test_services.py",
+      "line_start": 45,
+      "line_end": 49,
+      "signature": "()",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Test authentication with invalid username.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 1,
+      "unresolved": [
+        {
+          "expr": "UserService",
+          "name": "UserService",
+          "line": 47,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 5,
+      "char_count": 224,
+      "approx_tokens": 56,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_services.py::test_authenticate_invalid_password": {
+      "kind": "function",
+      "name": "test_authenticate_invalid_password",
+      "file": "tests/fixtures/api_server/tests/test_services.py",
+      "line_start": 52,
+      "line_end": 58,
+      "signature": "()",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Test authentication with invalid password.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 1,
+      "unresolved": [
+        {
+          "expr": "UserService",
+          "name": "UserService",
+          "line": 54,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 7,
+      "char_count": 303,
+      "approx_tokens": 75,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_services.py::test_update_user_password": {
+      "kind": "function",
+      "name": "test_update_user_password",
+      "file": "tests/fixtures/api_server/tests/test_services.py",
+      "line_start": 61,
+      "line_end": 67,
+      "signature": "()",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Test updating user password.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 1,
+      "unresolved": [
+        {
+          "expr": "UserService",
+          "name": "UserService",
+          "line": 63,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 7,
+      "char_count": 264,
+      "approx_tokens": 66,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_services.py::test_session_manager": {
+      "kind": "function",
+      "name": "test_session_manager",
+      "file": "tests/fixtures/api_server/tests/test_services.py",
+      "line_start": 70,
+      "line_end": 81,
+      "signature": "()",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Test session manager integration.",
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 2,
+      "unresolved": [
+        {
+          "expr": "UserService",
+          "name": "UserService",
+          "line": 75,
+          "reason": "not_found"
+        },
+        {
+          "expr": "SessionManager",
+          "name": "SessionManager",
+          "line": 76,
+          "reason": "not_found"
+        }
+      ],
+      "builtin_calls": [],
+      "line_count": 12,
+      "char_count": 410,
+      "approx_tokens": 102,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_services.py::assert_raises": {
+      "kind": "function",
+      "name": "assert_raises",
+      "file": "tests/fixtures/api_server/tests/test_services.py",
+      "line_start": 85,
+      "line_end": 94,
+      "signature": "(exception_type)",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": "Simple context manager for exception testing.",
+      "parent_class": null,
+      "is_test": false,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [
+        "AssertionError",
+        "issubclass"
+      ],
+      "line_count": 10,
+      "char_count": 434,
+      "approx_tokens": 108,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_services.py::RaisesContext": {
+      "kind": "class",
+      "name": "RaisesContext",
+      "file": "tests/fixtures/api_server/tests/test_services.py",
+      "line_start": 87,
+      "line_end": 93,
+      "signature": null,
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": null,
+      "is_test": true,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 7,
+      "char_count": 316,
+      "approx_tokens": 79,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_services.py::RaisesContext.__enter__": {
+      "kind": "method",
+      "name": "__enter__",
+      "file": "tests/fixtures/api_server/tests/test_services.py",
+      "line_start": 88,
+      "line_end": 89,
+      "signature": "(self)",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": "tests/fixtures/api_server/tests/test_services.py::RaisesContext",
+      "is_test": false,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [],
+      "line_count": 2,
+      "char_count": 52,
+      "approx_tokens": 13,
+      "value_preview": null,
+      "references": []
+    },
+    "tests/fixtures/api_server/tests/test_services.py::RaisesContext.__exit__": {
+      "kind": "method",
+      "name": "__exit__",
+      "file": "tests/fixtures/api_server/tests/test_services.py",
+      "line_start": 90,
+      "line_end": 93,
+      "signature": "(self, exc_type, exc_val, exc_tb)",
+      "decorators": [],
+      "decorator_targets": [],
+      "docstring": null,
+      "parent_class": "tests/fixtures/api_server/tests/test_services.py::RaisesContext",
+      "is_test": false,
+      "unresolved_calls": 0,
+      "unresolved": [],
+      "builtin_calls": [
+        "AssertionError",
+        "issubclass"
+      ],
+      "line_count": 4,
+      "char_count": 238,
+      "approx_tokens": 59,
+      "value_preview": null,
+      "references": []
+    }
+  },
+  "call_graph": {
+    "callees": {
+      "tests/fixtures/api_server/src/auth.py::_hash_password": [],
+      "tests/fixtures/api_server/src/auth.py::validate_password": [
+        "tests/fixtures/api_server/src/auth.py::_hash_password"
+      ],
+      "tests/fixtures/api_server/src/auth.py::generate_token": [],
+      "tests/fixtures/api_server/src/auth.py::authenticate": [
+        "tests/fixtures/api_server/src/auth.py::InvalidTokenException"
+      ],
+      "tests/fixtures/api_server/src/server.py::APIServer.__init__": [],
+      "tests/fixtures/api_server/src/server.py::APIServer._initialize_database": [],
+      "tests/fixtures/api_server/src/server.py::APIServer._initialize_routes": [],
+      "tests/fixtures/api_server/src/server.py::APIServer._handle_login": [
+        "tests/fixtures/api_server/src/services.py::SessionManager.start_session"
+      ],
+      "tests/fixtures/api_server/src/server.py::APIServer._handle_logout": [],
+      "tests/fixtures/api_server/src/server.py::APIServer._handle_users": [],
+      "tests/fixtures/api_server/src/server.py::APIServer.start": [
+        "tests/fixtures/api_server/src/server.py::APIServer._initialize_database",
+        "tests/fixtures/api_server/src/server.py::APIServer._initialize_routes"
+      ],
+      "tests/fixtures/api_server/src/server.py::APIServer.stop": [],
+      "tests/fixtures/api_server/src/services.py::BaseService.__init__": [],
+      "tests/fixtures/api_server/src/services.py::UserService._validate_user": [],
+      "tests/fixtures/api_server/src/services.py::UserService._validate_email": [],
+      "tests/fixtures/api_server/src/services.py::UserService.create_user": [
+        "tests/fixtures/api_server/src/services.py::UserService._validate_email",
+        "tests/fixtures/api_server/src/services.py::UserService._validate_user"
+      ],
+      "tests/fixtures/api_server/src/services.py::UserService.update_user": [
+        "tests/fixtures/api_server/src/services.py::UserService._validate_user"
+      ],
+      "tests/fixtures/api_server/src/services.py::UserService.authenticate": [],
+      "tests/fixtures/api_server/src/services.py::SessionManager.__init__": [
+        "tests/fixtures/api_server/src/services.py::BaseService.__init__"
+      ],
+      "tests/fixtures/api_server/src/services.py::SessionManager.start_session": [
+        "tests/fixtures/api_server/src/services.py::UserService.authenticate"
+      ],
+      "tests/fixtures/api_server/tests/test_auth.py::test_hash_password_deterministic": [],
+      "tests/fixtures/api_server/tests/test_auth.py::test_validate_password_correct": [],
+      "tests/fixtures/api_server/tests/test_auth.py::test_validate_password_incorrect": [],
+      "tests/fixtures/api_server/tests/test_auth.py::test_generate_token": [],
+      "tests/fixtures/api_server/tests/test_auth.py::test_token_is_unique": [],
+      "tests/fixtures/api_server/tests/test_server.py::test_server_initialization": [],
+      "tests/fixtures/api_server/tests/test_server.py::test_server_start": [
+        "tests/fixtures/api_server/src/server.py::APIServer.start"
+      ],
+      "tests/fixtures/api_server/tests/test_server.py::test_server_stop": [
+        "tests/fixtures/api_server/src/server.py::APIServer.start",
+        "tests/fixtures/api_server/src/server.py::APIServer.stop"
+      ],
+      "tests/fixtures/api_server/tests/test_server.py::test_server_login_flow": [
+        "tests/fixtures/api_server/src/server.py::APIServer._handle_login",
+        "tests/fixtures/api_server/src/server.py::APIServer.start"
+      ],
+      "tests/fixtures/api_server/tests/test_services.py::test_create_user_valid": [
+        "tests/fixtures/api_server/src/services.py::UserService.create_user"
+      ],
+      "tests/fixtures/api_server/tests/test_services.py::test_create_user_validates_email": [
+        "tests/fixtures/api_server/src/services.py::UserService.create_user"
+      ],
+      "tests/fixtures/api_server/tests/test_services.py::test_create_user_validates_password": [
+        "tests/fixtures/api_server/src/services.py::UserService.create_user"
+      ],
+      "tests/fixtures/api_server/tests/test_services.py::test_authenticate_valid": [
+        "tests/fixtures/api_server/src/services.py::UserService.authenticate",
+        "tests/fixtures/api_server/src/services.py::UserService.create_user"
+      ],
+      "tests/fixtures/api_server/tests/test_services.py::test_authenticate_invalid_user": [
+        "tests/fixtures/api_server/src/services.py::UserService.authenticate",
+        "tests/fixtures/api_server/tests/test_services.py::assert_raises"
+      ],
+      "tests/fixtures/api_server/tests/test_services.py::test_authenticate_invalid_password": [
+        "tests/fixtures/api_server/src/services.py::UserService.authenticate",
+        "tests/fixtures/api_server/src/services.py::UserService.create_user",
+        "tests/fixtures/api_server/tests/test_services.py::assert_raises"
+      ],
+      "tests/fixtures/api_server/tests/test_services.py::test_update_user_password": [
+        "tests/fixtures/api_server/src/services.py::UserService.create_user",
+        "tests/fixtures/api_server/src/services.py::UserService.update_user"
+      ],
+      "tests/fixtures/api_server/tests/test_services.py::test_session_manager": [
+        "tests/fixtures/api_server/src/services.py::SessionManager.start_session",
+        "tests/fixtures/api_server/src/services.py::UserService.create_user"
+      ],
+      "tests/fixtures/api_server/tests/test_services.py::assert_raises": [
+        "tests/fixtures/api_server/tests/test_services.py::RaisesContext"
+      ],
+      "tests/fixtures/api_server/tests/test_services.py::RaisesContext.__enter__": [],
+      "tests/fixtures/api_server/tests/test_services.py::RaisesContext.__exit__": []
+    },
+    "callers": {
+      "tests/fixtures/api_server/src/auth.py::_hash_password": [
+        "tests/fixtures/api_server/src/auth.py::validate_password"
+      ],
+      "tests/fixtures/api_server/src/auth.py::InvalidTokenException": [
+        "tests/fixtures/api_server/src/auth.py::authenticate"
+      ],
+      "tests/fixtures/api_server/src/services.py::SessionManager.start_session": [
+        "tests/fixtures/api_server/src/server.py::APIServer._handle_login",
+        "tests/fixtures/api_server/tests/test_services.py::test_session_manager"
+      ],
+      "tests/fixtures/api_server/src/server.py::APIServer._initialize_database": [
+        "tests/fixtures/api_server/src/server.py::APIServer.start"
+      ],
+      "tests/fixtures/api_server/src/server.py::APIServer._initialize_routes": [
+        "tests/fixtures/api_server/src/server.py::APIServer.start"
+      ],
+      "tests/fixtures/api_server/src/services.py::UserService._validate_email": [
+        "tests/fixtures/api_server/src/services.py::UserService.create_user"
+      ],
+      "tests/fixtures/api_server/src/services.py::UserService._validate_user": [
+        "tests/fixtures/api_server/src/services.py::UserService.create_user",
+        "tests/fixtures/api_server/src/services.py::UserService.update_user"
+      ],
+      "tests/fixtures/api_server/src/services.py::BaseService.__init__": [
+        "tests/fixtures/api_server/src/services.py::SessionManager.__init__"
+      ],
+      "tests/fixtures/api_server/src/services.py::UserService.authenticate": [
+        "tests/fixtures/api_server/src/services.py::SessionManager.start_session",
+        "tests/fixtures/api_server/tests/test_services.py::test_authenticate_valid",
+        "tests/fixtures/api_server/tests/test_services.py::test_authenticate_invalid_user",
+        "tests/fixtures/api_server/tests/test_services.py::test_authenticate_invalid_password"
+      ],
+      "tests/fixtures/api_server/src/server.py::APIServer.start": [
+        "tests/fixtures/api_server/tests/test_server.py::test_server_start",
+        "tests/fixtures/api_server/tests/test_server.py::test_server_stop",
+        "tests/fixtures/api_server/tests/test_server.py::test_server_login_flow"
+      ],
+      "tests/fixtures/api_server/src/server.py::APIServer.stop": [
+        "tests/fixtures/api_server/tests/test_server.py::test_server_stop"
+      ],
+      "tests/fixtures/api_server/src/server.py::APIServer._handle_login": [
+        "tests/fixtures/api_server/tests/test_server.py::test_server_login_flow"
+      ],
+      "tests/fixtures/api_server/src/services.py::UserService.create_user": [
+        "tests/fixtures/api_server/tests/test_services.py::test_create_user_valid",
+        "tests/fixtures/api_server/tests/test_services.py::test_create_user_validates_email",
+        "tests/fixtures/api_server/tests/test_services.py::test_create_user_validates_password",
+        "tests/fixtures/api_server/tests/test_services.py::test_authenticate_valid",
+        "tests/fixtures/api_server/tests/test_services.py::test_authenticate_invalid_password",
+        "tests/fixtures/api_server/tests/test_services.py::test_update_user_password",
+        "tests/fixtures/api_server/tests/test_services.py::test_session_manager"
+      ],
+      "tests/fixtures/api_server/tests/test_services.py::assert_raises": [
+        "tests/fixtures/api_server/tests/test_services.py::test_authenticate_invalid_user",
+        "tests/fixtures/api_server/tests/test_services.py::test_authenticate_invalid_password"
+      ],
+      "tests/fixtures/api_server/src/services.py::UserService.update_user": [
+        "tests/fixtures/api_server/tests/test_services.py::test_update_user_password"
+      ],
+      "tests/fixtures/api_server/tests/test_services.py::RaisesContext": [
+        "tests/fixtures/api_server/tests/test_services.py::assert_raises"
+      ]
+    },
+    "references": {
+      "tests/fixtures/api_server/src/auth.py::_hash_password": [
+        "tests/fixtures/api_server/src/config.py::SECRET_KEY"
+      ],
+      "tests/fixtures/api_server/src/auth.py::generate_token": [
+        "tests/fixtures/api_server/src/config.py::SECRET_KEY"
+      ],
+      "tests/fixtures/api_server/src/server.py::APIServer.__init__": [
+        "tests/fixtures/api_server/src/config.py::SERVER_HOST",
+        "tests/fixtures/api_server/src/config.py::SERVER_PORT"
+      ],
+      "tests/fixtures/api_server/src/server.py::APIServer.start": [
+        "tests/fixtures/api_server/src/config.py::DEBUG"
+      ],
+      "tests/fixtures/api_server/src/services.py::UserService._validate_email": [
+        "tests/fixtures/api_server/src/config.py::VALID_EMAIL_DOMAINS"
+      ],
+      "tests/fixtures/api_server/src/services.py::UserService.create_user": [
+        "tests/fixtures/api_server/src/config.py::USER_ROLE"
+      ],
+      "tests/fixtures/api_server/tests/test_server.py::test_server_initialization": [
+        "tests/fixtures/api_server/src/config.py::SERVER_PORT"
+      ]
+    },
+    "referenced_by": {
+      "tests/fixtures/api_server/src/config.py::SECRET_KEY": [
+        "tests/fixtures/api_server/src/auth.py::_hash_password",
+        "tests/fixtures/api_server/src/auth.py::generate_token"
+      ],
+      "tests/fixtures/api_server/src/config.py::SERVER_HOST": [
+        "tests/fixtures/api_server/src/server.py::APIServer.__init__"
+      ],
+      "tests/fixtures/api_server/src/config.py::SERVER_PORT": [
+        "tests/fixtures/api_server/src/server.py::APIServer.__init__",
+        "tests/fixtures/api_server/tests/test_server.py::test_server_initialization"
+      ],
+      "tests/fixtures/api_server/src/config.py::DEBUG": [
+        "tests/fixtures/api_server/src/server.py::APIServer.start"
+      ],
+      "tests/fixtures/api_server/src/config.py::VALID_EMAIL_DOMAINS": [
+        "tests/fixtures/api_server/src/services.py::UserService._validate_email"
+      ],
+      "tests/fixtures/api_server/src/config.py::USER_ROLE": [
+        "tests/fixtures/api_server/src/services.py::UserService.create_user"
+      ]
+    },
+    "decorated_by": {
+      "tests/fixtures/api_server/src/server.py::APIServer._handle_logout": [
+        "tests/fixtures/api_server/src/auth.py::authenticate"
+      ],
+      "tests/fixtures/api_server/src/server.py::APIServer._handle_users": [
+        "tests/fixtures/api_server/src/auth.py::authenticate"
+      ]
+    },
+    "decorates": {
+      "tests/fixtures/api_server/src/auth.py::authenticate": [
+        "tests/fixtures/api_server/src/server.py::APIServer._handle_logout",
+        "tests/fixtures/api_server/src/server.py::APIServer._handle_users"
+      ]
+    }
+  },
+  "test_to_source": {
+    "tests/fixtures/api_server/tests/test_server.py::test_server_start": [
+      "tests/fixtures/api_server/src/server.py::APIServer.start"
+    ],
+    "tests/fixtures/api_server/tests/test_server.py::test_server_stop": [
+      "tests/fixtures/api_server/src/server.py::APIServer.start",
+      "tests/fixtures/api_server/src/server.py::APIServer.stop"
+    ],
+    "tests/fixtures/api_server/tests/test_server.py::test_server_login_flow": [
+      "tests/fixtures/api_server/src/server.py::APIServer._handle_login",
+      "tests/fixtures/api_server/src/server.py::APIServer.start"
+    ],
+    "tests/fixtures/api_server/tests/test_services.py::test_create_user_valid": [
+      "tests/fixtures/api_server/src/services.py::UserService.create_user"
+    ],
+    "tests/fixtures/api_server/tests/test_services.py::test_create_user_validates_email": [
+      "tests/fixtures/api_server/src/services.py::UserService.create_user"
+    ],
+    "tests/fixtures/api_server/tests/test_services.py::test_create_user_validates_password": [
+      "tests/fixtures/api_server/src/services.py::UserService.create_user"
+    ],
+    "tests/fixtures/api_server/tests/test_services.py::test_authenticate_valid": [
+      "tests/fixtures/api_server/src/services.py::UserService.authenticate",
+      "tests/fixtures/api_server/src/services.py::UserService.create_user"
+    ],
+    "tests/fixtures/api_server/tests/test_services.py::test_authenticate_invalid_user": [
+      "tests/fixtures/api_server/src/services.py::UserService.authenticate",
+      "tests/fixtures/api_server/tests/test_services.py::assert_raises"
+    ],
+    "tests/fixtures/api_server/tests/test_services.py::test_authenticate_invalid_password": [
+      "tests/fixtures/api_server/src/services.py::UserService.authenticate",
+      "tests/fixtures/api_server/src/services.py::UserService.create_user",
+      "tests/fixtures/api_server/tests/test_services.py::assert_raises"
+    ],
+    "tests/fixtures/api_server/tests/test_services.py::test_update_user_password": [
+      "tests/fixtures/api_server/src/services.py::UserService.create_user",
+      "tests/fixtures/api_server/src/services.py::UserService.update_user"
+    ],
+    "tests/fixtures/api_server/tests/test_services.py::test_session_manager": [
+      "tests/fixtures/api_server/src/services.py::SessionManager.start_session",
+      "tests/fixtures/api_server/src/services.py::UserService.create_user"
+    ]
+  },
+  "test_to_source_transitive": {
+    "tests/fixtures/api_server/tests/test_server.py::test_server_start": [
+      "tests/fixtures/api_server/src/server.py::APIServer._initialize_database",
+      "tests/fixtures/api_server/src/server.py::APIServer._initialize_routes",
+      "tests/fixtures/api_server/src/server.py::APIServer.start"
+    ],
+    "tests/fixtures/api_server/tests/test_server.py::test_server_stop": [
+      "tests/fixtures/api_server/src/server.py::APIServer._initialize_database",
+      "tests/fixtures/api_server/src/server.py::APIServer._initialize_routes",
+      "tests/fixtures/api_server/src/server.py::APIServer.start",
+      "tests/fixtures/api_server/src/server.py::APIServer.stop"
+    ],
+    "tests/fixtures/api_server/tests/test_server.py::test_server_login_flow": [
+      "tests/fixtures/api_server/src/server.py::APIServer._handle_login",
+      "tests/fixtures/api_server/src/server.py::APIServer._initialize_database",
+      "tests/fixtures/api_server/src/server.py::APIServer._initialize_routes",
+      "tests/fixtures/api_server/src/server.py::APIServer.start",
+      "tests/fixtures/api_server/src/services.py::SessionManager.start_session",
+      "tests/fixtures/api_server/src/services.py::UserService.authenticate"
+    ],
+    "tests/fixtures/api_server/tests/test_services.py::test_create_user_valid": [
+      "tests/fixtures/api_server/src/services.py::UserService._validate_email",
+      "tests/fixtures/api_server/src/services.py::UserService._validate_user",
+      "tests/fixtures/api_server/src/services.py::UserService.create_user"
+    ],
+    "tests/fixtures/api_server/tests/test_services.py::test_create_user_validates_email": [
+      "tests/fixtures/api_server/src/services.py::UserService._validate_email",
+      "tests/fixtures/api_server/src/services.py::UserService._validate_user",
+      "tests/fixtures/api_server/src/services.py::UserService.create_user"
+    ],
+    "tests/fixtures/api_server/tests/test_services.py::test_create_user_validates_password": [
+      "tests/fixtures/api_server/src/services.py::UserService._validate_email",
+      "tests/fixtures/api_server/src/services.py::UserService._validate_user",
+      "tests/fixtures/api_server/src/services.py::UserService.create_user"
+    ],
+    "tests/fixtures/api_server/tests/test_services.py::test_authenticate_valid": [
+      "tests/fixtures/api_server/src/services.py::UserService._validate_email",
+      "tests/fixtures/api_server/src/services.py::UserService._validate_user",
+      "tests/fixtures/api_server/src/services.py::UserService.authenticate",
+      "tests/fixtures/api_server/src/services.py::UserService.create_user"
+    ],
+    "tests/fixtures/api_server/tests/test_services.py::test_authenticate_invalid_user": [
+      "tests/fixtures/api_server/src/services.py::UserService.authenticate",
+      "tests/fixtures/api_server/tests/test_services.py::assert_raises"
+    ],
+    "tests/fixtures/api_server/tests/test_services.py::test_authenticate_invalid_password": [
+      "tests/fixtures/api_server/src/services.py::UserService._validate_email",
+      "tests/fixtures/api_server/src/services.py::UserService._validate_user",
+      "tests/fixtures/api_server/src/services.py::UserService.authenticate",
+      "tests/fixtures/api_server/src/services.py::UserService.create_user",
+      "tests/fixtures/api_server/tests/test_services.py::assert_raises"
+    ],
+    "tests/fixtures/api_server/tests/test_services.py::test_update_user_password": [
+      "tests/fixtures/api_server/src/services.py::UserService._validate_email",
+      "tests/fixtures/api_server/src/services.py::UserService._validate_user",
+      "tests/fixtures/api_server/src/services.py::UserService.create_user",
+      "tests/fixtures/api_server/src/services.py::UserService.update_user"
+    ],
+    "tests/fixtures/api_server/tests/test_services.py::test_session_manager": [
+      "tests/fixtures/api_server/src/services.py::SessionManager.start_session",
+      "tests/fixtures/api_server/src/services.py::UserService._validate_email",
+      "tests/fixtures/api_server/src/services.py::UserService._validate_user",
+      "tests/fixtures/api_server/src/services.py::UserService.authenticate",
+      "tests/fixtures/api_server/src/services.py::UserService.create_user"
+    ]
+  },
+  "parse_errors": []
+}

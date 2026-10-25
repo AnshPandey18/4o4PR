@@ -1,0 +1,157 @@
+{
+  "attempt": 1,
+  "budget": {
+    "input": 10000,
+    "output_reserved": 1500,
+    "used": 3141
+  },
+  "bug_ids": [
+    "b_056a5081c629",
+    "b_54e477c51122",
+    "b_bd675980c5ec"
+  ],
+  "dropped": [],
+  "group_id": "G1",
+  "included": [
+    {
+      "form": "verbatim",
+      "item": "system_rules",
+      "lines": null,
+      "reason": "required",
+      "tier": "T0",
+      "tokens": 986
+    },
+    {
+      "form": "verbatim",
+      "item": "evidence_b_056a5081c629",
+      "lines": null,
+      "reason": "failure_evidence",
+      "tier": "T1",
+      "tokens": 128
+    },
+    {
+      "form": "verbatim",
+      "item": "evidence_b_54e477c51122",
+      "lines": null,
+      "reason": "failure_evidence",
+      "tier": "T1",
+      "tokens": 128
+    },
+    {
+      "form": "verbatim",
+      "item": "evidence_b_bd675980c5ec",
+      "lines": null,
+      "reason": "failure_evidence",
+      "tier": "T1",
+      "tokens": 128
+    },
+    {
+      "form": "full",
+      "item": "tests/test_calculator.py::test_subtract",
+      "lines": null,
+      "reason": "test_function",
+      "tier": "T2",
+      "tokens": 39
+    },
+    {
+      "form": "full",
+      "item": "tests/test_calculator.py::test_divide",
+      "lines": null,
+      "reason": "test_function",
+      "tier": "T2",
+      "tokens": 36
+    },
+    {
+      "form": "full",
+      "item": "tests/test_calculator.py::test_modulo",
+      "lines": null,
+      "reason": "test_function",
+      "tier": "T2",
+      "tokens": 36
+    },
+    {
+      "form": "full",
+      "item": "src/calculator.py::divide",
+      "lines": "49-66",
+      "reason": "suspect_function",
+      "tier": "T3",
+      "tokens": 168
+    },
+    {
+      "form": "full",
+      "item": "src/calculator.py::modulo",
+      "lines": "82-99",
+      "reason": "suspect_function",
+      "tier": "T3",
+      "tokens": 173
+    },
+    {
+      "form": "full",
+      "item": "src/calculator.py::subtract",
+      "lines": "21-33",
+      "reason": "suspect_function",
+      "tier": "T3",
+      "tokens": 115
+    },
+    {
+      "form": "signature",
+      "item": "tests/test_calculator.py::test_divide",
+      "lines": null,
+      "reason": "neighbor",
+      "tier": "T4",
+      "tokens": 17
+    },
+    {
+      "form": "signature",
+      "item": "tests/test_calculator.py::test_divide_by_zero",
+      "lines": null,
+      "reason": "neighbor",
+      "tier": "T4",
+      "tokens": 22
+    },
+    {
+      "form": "signature",
+      "item": "tests/test_calculator.py::test_modulo",
+      "lines": null,
+      "reason": "neighbor",
+      "tier": "T4",
+      "tokens": 20
+    },
+    {
+      "form": "signature",
+      "item": "tests/test_calculator.py::test_subtract",
+      "lines": null,
+      "reason": "neighbor",
+      "tier": "T4",
+      "tokens": 19
+    },
+    {
+      "form": "compressed",
+      "item": "file_tree_src",
+      "lines": null,
+      "reason": "repository_map",
+      "tier": "T5",
+      "tokens": 85
+    },
+    {
+      "form": "verbatim",
+      "item": "output_schema",
+      "lines": null,
+      "reason": "required",
+      "tier": "T6",
+      "tokens": 782
+    }
+  ],
+  "prompt_version": "analysis_v1",
+  "retrieval": "evidence",
+  "run_id": "r_20261008_202754",
+  "sanitization": {
+    "comments_removed": 0,
+    "docstrings_removed": 3,
+    "secrets_redacted": 0
+  },
+  "stage": "analysis",
+  "status": "ok",
+  "token_method": "estimate",
+  "warnings": []
+}
