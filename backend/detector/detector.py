@@ -708,10 +708,18 @@ class BugDetector:
                         import_map = self._build_import_map(imports)
                         
                         # Find the assertion node
+                        assertion_node = None
                         for child in ast.walk(node):
                             if isinstance(child, ast.Assert) and child.lineno == first_assertion.line:
-                                # Extract function calls from the assertion
-                                return self._extract_calls_from_assertion(child, file_path, import_map)
+                                assertion_node = child
+                                break
+                        
+                        if assertion_node:
+                            # NEW: Extract calls from entire function body up to and including assertion
+                            # This handles cases where calls are on previous lines
+                            return self._extract_calls_from_function(
+                                node, assertion_node, file_path, import_map
+                            )
             
             return []
         
@@ -741,6 +749,49 @@ class BugDetector:
                         import_map[key] = resolved_file
         
         return import_map
+    
+    def _extract_calls_from_function(
+        self,
+        func_node: ast.FunctionDef,
+        assert_node: ast.Assert,
+        file_path: str,
+        import_map: Dict[str, str]
+    ) -> List[CalledSymbol]:
+        """Extract function calls from test function body up to and including assertion.
+        
+        Walks the function body to find calls on lines before the assertion,
+        handling cases like:
+            result = service.create_user(...)  # line N
+            assert result == False              # line N+1
+        
+        Args:
+            func_node: Test function AST node
+            assert_node: AST Assert node
+            file_path: POSIX relative path to test file
+            import_map: Import name to file mapping
+            
+        Returns:
+            List of CalledSymbol objects
+        """
+        called_symbols = []
+        seen_names = set()
+        assert_line = assert_node.lineno
+        
+        # Walk all statements in the function body up to and including the assertion
+        for stmt in func_node.body:
+            # Stop after processing the assertion line
+            if stmt.lineno > assert_line:
+                break
+            
+            # Extract calls from this statement
+            for node in ast.walk(stmt):
+                if isinstance(node, ast.Call):
+                    symbol = self._resolve_call_to_symbol(node, file_path, import_map)
+                    if symbol and symbol.name not in seen_names:
+                        called_symbols.append(symbol)
+                        seen_names.add(symbol.name)
+        
+        return called_symbols
     
     def _extract_calls_from_assertion(
         self,

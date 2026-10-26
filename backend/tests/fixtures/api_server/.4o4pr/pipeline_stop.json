@@ -1,0 +1,11 @@
+{
+  "run_id": "eval_api_server_20261025_155829",
+  "stage": "context",
+  "stages_completed": [
+    "indexer",
+    "detector",
+    "grouper",
+    "context"
+  ],
+  "timestamp": "2026-10-25T10:28:35.582421+00:00Z"
+}

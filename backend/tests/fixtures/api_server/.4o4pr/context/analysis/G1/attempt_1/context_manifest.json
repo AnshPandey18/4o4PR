@@ -1,0 +1,147 @@
+{
+  "attempt": 1,
+  "budget": {
+    "input": 10000,
+    "output_reserved": 1500,
+    "used": 1711
+  },
+  "bug_ids": [
+    "b_fdf12715614e"
+  ],
+  "dropped": [],
+  "group_id": "G1",
+  "included": [
+    {
+      "form": "verbatim",
+      "item": "system_rules",
+      "lines": null,
+      "reason": "required",
+      "tier": "T0",
+      "tokens": 58
+    },
+    {
+      "form": "verbatim",
+      "item": "evidence_b_fdf12715614e",
+      "lines": null,
+      "reason": "failure_evidence",
+      "tier": "T1",
+      "tokens": 126
+    },
+    {
+      "form": "full",
+      "item": "tests/test_services.py::test_create_user_validates_password",
+      "lines": null,
+      "reason": "test_function",
+      "tier": "T2",
+      "tokens": 57
+    },
+    {
+      "form": "full",
+      "item": "src/services.py::UserService",
+      "lines": "19-84",
+      "reason": "suspect_function",
+      "tier": "T3",
+      "tokens": 852
+    },
+    {
+      "form": "signature",
+      "item": "src/server.py::APIServer.__init__",
+      "lines": null,
+      "reason": "neighbor",
+      "tier": "T4",
+      "tokens": 17
+    },
+    {
+      "form": "signature",
+      "item": "tests/test_services.py::test_authenticate_invalid_password",
+      "lines": null,
+      "reason": "neighbor",
+      "tier": "T4",
+      "tokens": 27
+    },
+    {
+      "form": "signature",
+      "item": "tests/test_services.py::test_authenticate_invalid_user",
+      "lines": null,
+      "reason": "neighbor",
+      "tier": "T4",
+      "tokens": 26
+    },
+    {
+      "form": "signature",
+      "item": "tests/test_services.py::test_authenticate_valid",
+      "lines": null,
+      "reason": "neighbor",
+      "tier": "T4",
+      "tokens": 24
+    },
+    {
+      "form": "signature",
+      "item": "tests/test_services.py::test_create_user_valid",
+      "lines": null,
+      "reason": "neighbor",
+      "tier": "T4",
+      "tokens": 19
+    },
+    {
+      "form": "signature",
+      "item": "tests/test_services.py::test_create_user_validates_email",
+      "lines": null,
+      "reason": "neighbor",
+      "tier": "T4",
+      "tokens": 26
+    },
+    {
+      "form": "signature",
+      "item": "tests/test_services.py::test_create_user_validates_password",
+      "lines": null,
+      "reason": "neighbor",
+      "tier": "T4",
+      "tokens": 26
+    },
+    {
+      "form": "signature",
+      "item": "tests/test_services.py::test_session_manager",
+      "lines": null,
+      "reason": "neighbor",
+      "tier": "T4",
+      "tokens": 20
+    },
+    {
+      "form": "signature",
+      "item": "tests/test_services.py::test_update_user_password",
+      "lines": null,
+      "reason": "neighbor",
+      "tier": "T4",
+      "tokens": 20
+    },
+    {
+      "form": "compressed",
+      "item": "file_tree_src",
+      "lines": null,
+      "reason": "repository_map",
+      "tier": "T5",
+      "tokens": 110
+    },
+    {
+      "form": "verbatim",
+      "item": "output_schema",
+      "lines": null,
+      "reason": "required",
+      "tier": "T6",
+      "tokens": 91
+    }
+  ],
+  "prompt_version": "analysis_v1",
+  "retrieval": "evidence",
+  "run_id": "eval_api_server_20261025_155829",
+  "sanitization": {
+    "comments_removed": 0,
+    "docstrings_removed": 1,
+    "secrets_redacted": 0
+  },
+  "stage": "analysis",
+  "status": "ok",
+  "token_method": "estimate",
+  "warnings": []
+}

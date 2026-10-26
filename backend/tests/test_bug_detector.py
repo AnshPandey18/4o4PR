@@ -1,6 +1,7 @@
 """Unit tests for the Bug Detector module."""
 
 import pytest
+import subprocess
 import tempfile
 import shutil
 from pathlib import Path

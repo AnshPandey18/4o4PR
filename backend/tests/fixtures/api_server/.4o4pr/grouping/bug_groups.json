@@ -1,0 +1,38 @@
+{
+  "excluded": [],
+  "groups": [
+    {
+      "bug_ids": [
+        "b_fdf12715614e"
+      ],
+      "clusters": [
+        {
+          "bug_ids": [
+            "b_fdf12715614e"
+          ],
+          "symbol_id": "src/services.py::UserService"
+        }
+      ],
+      "estimated_tokens": 179,
+      "group_id": "G1",
+      "group_key": "a1ab6c8416dbefff",
+      "kind": "source",
+      "priority": 1,
+      "status": "pending",
+      "suspect": {
+        "file": "src/services.py",
+        "resolution": "resolved",
+        "symbols": [
+          "src/services.py::UserService"
+        ]
+      }
+    }
+  ],
+  "run_id": "eval_api_server_20261025_155829",
+  "schema_version": "1.0",
+  "totals": {
+    "bugs": 1,
+    "excluded": 0,
+    "groups": 1
+  }
+}

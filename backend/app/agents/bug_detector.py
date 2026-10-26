@@ -480,16 +480,29 @@ class BugDetector:
             Tuple of (total_tests, total_failures)
         """
         # Pattern: "=== 2 failed, 3 passed in 0.05s ==="
+        # Also handles: "=== 2 failed in 0.05s ===" (no passed)
+        # Also handles: "=== 3 passed in 0.05s ===" (no failed)
+        
+        # Try multiple patterns for robustness
         stats_pattern = re.search(
-            r'=+\s*(?:(\d+)\s+failed)?.*?(?:(\d+)\s+passed)?.*?=+',
-            output
+            r'=+\s*(?:(\d+)\s+failed)?[,\s]*(?:(\d+)\s+passed)?[,\s]*(?:(\d+)\s+skipped)?.*?in\s+[\d.]+s\s*=+',
+            output,
+            re.IGNORECASE
         )
         
         if stats_pattern:
             failures = int(stats_pattern.group(1) or 0)
             passed = int(stats_pattern.group(2) or 0)
-            total = failures + passed
+            skipped = int(stats_pattern.group(3) or 0)
+            total = failures + passed + skipped
             return total, failures
+        
+        # Fallback: count individual PASSED/FAILED markers
+        passed_count = len(re.findall(r'\s+PASSED\s+', output, re.IGNORECASE))
+        failed_count = len(re.findall(r'\s+FAILED\s+', output, re.IGNORECASE))
+        
+        if passed_count > 0 or failed_count > 0:
+            return passed_count + failed_count, failed_count
         
         return 0, 0
     

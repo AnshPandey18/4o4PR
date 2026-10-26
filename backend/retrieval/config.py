@@ -52,9 +52,20 @@ class RetrievalConfig:
     BM25_K1: float = 1.5
     BM25_B: float = 0.75
     
+    # BM25 query parameters
+    QUERY_TERM_CAP: int = 2  # Maximum query term weight
+    
+    # BM25 tokenizer parameters
+    MIN_TOKEN_LEN: int = 2
+    STEM_ENABLED: bool = True
+    INCLUDE_COMMENTS: bool = True
+    CLASS_CHUNK: str = "skeleton"  # Only name + signature + docstring for classes
+    INCLUDE_TEST_CHUNKS: bool = False  # Exclude test symbols from search by default
+    
     # BM25 stoplist (Phase 3)
     BM25_STOPLIST: frozenset = field(default_factory=lambda: frozenset({
         'def', 'return', 'self', 'cls', 'if', 'else', 'elif',
         'for', 'in', 'is', 'not', 'and', 'or', 'import', 'from',
-        'as', 'none', 'true', 'false'
+        'as', 'none', 'true', 'false', 'pass', 'try', 'except',
+        'with', 'while', 'lambda', 'the', 'of', 'to', 'a', 'an'
     }))

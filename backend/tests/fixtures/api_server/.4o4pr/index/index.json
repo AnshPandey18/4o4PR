@@ -1,0 +1,2756 @@
+{
+  "call_graph": {
+    "callees": {
+      "src/auth.py::_hash_password": [],
+      "src/auth.py::authenticate": [
+        "src/auth.py::InvalidTokenException"
+      ],
+      "src/auth.py::generate_token": [],
+      "src/auth.py::validate_password": [
+        "src/auth.py::_hash_password"
+      ],
+      "src/server.py::APIServer.__init__": [
+        "src/services.py::SessionManager",
+        "src/services.py::UserService"
+      ],
+      "src/server.py::APIServer._handle_login": [
+        "src/services.py::SessionManager.start_session"
+      ],
+      "src/server.py::APIServer._handle_logout": [],
+      "src/server.py::APIServer._handle_users": [],
+      "src/server.py::APIServer._initialize_database": [],
+      "src/server.py::APIServer._initialize_routes": [],
+      "src/server.py::APIServer.start": [
+        "src/server.py::APIServer._initialize_database",
+        "src/server.py::APIServer._initialize_routes"
+      ],
+      "src/server.py::APIServer.stop": [],
+      "src/services.py::BaseService.__init__": [],
+      "src/services.py::SessionManager.__init__": [
+        "src/services.py::BaseService.__init__"
+      ],
+      "src/services.py::SessionManager.start_session": [
+        "src/services.py::UserService.authenticate"
+      ],
+      "src/services.py::UserService._validate_email": [],
+      "src/services.py::UserService._validate_user": [],
+      "src/services.py::UserService.authenticate": [
+        "src/auth.py::InvalidTokenException",
+        "src/auth.py::_hash_password",
+        "src/auth.py::generate_token"
+      ],
+      "src/services.py::UserService.create_user": [
+        "src/auth.py::_hash_password",
+        "src/services.py::UserService._validate_email",
+        "src/services.py::UserService._validate_user"
+      ],
+      "src/services.py::UserService.update_user": [
+        "src/auth.py::_hash_password",
+        "src/services.py::UserService._validate_user"
+      ],
+      "tests/test_auth.py::test_generate_token": [
+        "src/auth.py::generate_token"
+      ],
+      "tests/test_auth.py::test_hash_password_deterministic": [
+        "src/auth.py::_hash_password"
+      ],
+      "tests/test_auth.py::test_token_is_unique": [
+        "src/auth.py::generate_token"
+      ],
+      "tests/test_auth.py::test_validate_password_correct": [
+        "src/auth.py::_hash_password",
+        "src/auth.py::validate_password"
+      ],
+      "tests/test_auth.py::test_validate_password_incorrect": [
+        "src/auth.py::_hash_password",
+        "src/auth.py::validate_password"
+      ],
+      "tests/test_server.py::test_server_initialization": [
+        "src/server.py::APIServer"
+      ],
+      "tests/test_server.py::test_server_login_flow": [
+        "src/server.py::APIServer",
+        "src/server.py::APIServer._handle_login",
+        "src/server.py::APIServer.start",
+        "src/services.py::UserService.create_user"
+      ],
+      "tests/test_server.py::test_server_start": [
+        "src/server.py::APIServer",
+        "src/server.py::APIServer.start"
+      ],
+      "tests/test_server.py::test_server_stop": [
+        "src/server.py::APIServer",
+        "src/server.py::APIServer.start",
+        "src/server.py::APIServer.stop"
+      ],
+      "tests/test_services.py::RaisesContext.__enter__": [],
+      "tests/test_services.py::RaisesContext.__exit__": [],
+      "tests/test_services.py::assert_raises": [
+        "tests/test_services.py::RaisesContext"
+      ],
+      "tests/test_services.py::test_authenticate_invalid_password": [
+        "src/services.py::UserService",
+        "src/services.py::UserService.authenticate",
+        "src/services.py::UserService.create_user",
+        "tests/test_services.py::assert_raises"
+      ],
+      "tests/test_services.py::test_authenticate_invalid_user": [
+        "src/services.py::UserService",
+        "src/services.py::UserService.authenticate",
+        "tests/test_services.py::assert_raises"
+      ],
+      "tests/test_services.py::test_authenticate_valid": [
+        "src/services.py::UserService",
+        "src/services.py::UserService.authenticate",
+        "src/services.py::UserService.create_user"
+      ],
+      "tests/test_services.py::test_create_user_valid": [
+        "src/services.py::UserService",
+        "src/services.py::UserService.create_user"
+      ],
+      "tests/test_services.py::test_create_user_validates_email": [
+        "src/services.py::UserService",
+        "src/services.py::UserService.create_user"
+      ],
+      "tests/test_services.py::test_create_user_validates_password": [
+        "src/services.py::UserService",
+        "src/services.py::UserService.create_user"
+      ],
+      "tests/test_services.py::test_session_manager": [
+        "src/services.py::SessionManager",
+        "src/services.py::SessionManager.start_session",
+        "src/services.py::UserService",
+        "src/services.py::UserService.create_user"
+      ],
+      "tests/test_services.py::test_update_user_password": [
+        "src/services.py::UserService",
+        "src/services.py::UserService.create_user",
+        "src/services.py::UserService.update_user"
+      ]
+    },
+    "callers": {
+      "src/auth.py::InvalidTokenException": [
+        "src/auth.py::authenticate",
+        "src/services.py::UserService.authenticate"
+      ],
+      "src/auth.py::_hash_password": [
+        "src/auth.py::validate_password",
+        "src/services.py::UserService.create_user",
+        "src/services.py::UserService.update_user",
+        "src/services.py::UserService.authenticate",
+        "tests/test_auth.py::test_hash_password_deterministic",
+        "tests/test_auth.py::test_validate_password_correct",
+        "tests/test_auth.py::test_validate_password_incorrect"
+      ],
+      "src/auth.py::generate_token": [
+        "src/services.py::UserService.authenticate",
+        "tests/test_auth.py::test_generate_token",
+        "tests/test_auth.py::test_token_is_unique"
+      ],
+      "src/auth.py::validate_password": [
+        "tests/test_auth.py::test_validate_password_correct",
+        "tests/test_auth.py::test_validate_password_incorrect"
+      ],
+      "src/server.py::APIServer": [
+        "tests/test_server.py::test_server_initialization",
+        "tests/test_server.py::test_server_start",
+        "tests/test_server.py::test_server_stop",
+        "tests/test_server.py::test_server_login_flow"
+      ],
+      "src/server.py::APIServer._handle_login": [
+        "tests/test_server.py::test_server_login_flow"
+      ],
+      "src/server.py::APIServer._initialize_database": [
+        "src/server.py::APIServer.start"
+      ],
+      "src/server.py::APIServer._initialize_routes": [
+        "src/server.py::APIServer.start"
+      ],
+      "src/server.py::APIServer.start": [
+        "tests/test_server.py::test_server_start",
+        "tests/test_server.py::test_server_stop",
+        "tests/test_server.py::test_server_login_flow"
+      ],
+      "src/server.py::APIServer.stop": [
+        "tests/test_server.py::test_server_stop"
+      ],
+      "src/services.py::BaseService.__init__": [
+        "src/services.py::SessionManager.__init__"
+      ],
+      "src/services.py::SessionManager": [
+        "src/server.py::APIServer.__init__",
+        "tests/test_services.py::test_session_manager"
+      ],
+      "src/services.py::SessionManager.start_session": [
+        "src/server.py::APIServer._handle_login",
+        "tests/test_services.py::test_session_manager"
+      ],
+      "src/services.py::UserService": [
+        "src/server.py::APIServer.__init__",
+        "tests/test_services.py::test_create_user_valid",
+        "tests/test_services.py::test_create_user_validates_email",
+        "tests/test_services.py::test_create_user_validates_password",
+        "tests/test_services.py::test_authenticate_valid",
+        "tests/test_services.py::test_authenticate_invalid_user",
+        "tests/test_services.py::test_authenticate_invalid_password",
+        "tests/test_services.py::test_update_user_password",
+        "tests/test_services.py::test_session_manager"
+      ],
+      "src/services.py::UserService._validate_email": [
+        "src/services.py::UserService.create_user"
+      ],
+      "src/services.py::UserService._validate_user": [
+        "src/services.py::UserService.create_user",
+        "src/services.py::UserService.update_user"
+      ],
+      "src/services.py::UserService.authenticate": [
+        "src/services.py::SessionManager.start_session",
+        "tests/test_services.py::test_authenticate_valid",
+        "tests/test_services.py::test_authenticate_invalid_user",
+        "tests/test_services.py::test_authenticate_invalid_password"
+      ],
+      "src/services.py::UserService.create_user": [
+        "tests/test_server.py::test_server_login_flow",
+        "tests/test_services.py::test_create_user_valid",
+        "tests/test_services.py::test_create_user_validates_email",
+        "tests/test_services.py::test_create_user_validates_password",
+        "tests/test_services.py::test_authenticate_valid",
+        "tests/test_services.py::test_authenticate_invalid_password",
+        "tests/test_services.py::test_update_user_password",
+        "tests/test_services.py::test_session_manager"
+      ],
+      "src/services.py::UserService.update_user": [
+        "tests/test_services.py::test_update_user_password"
+      ],
+      "tests/test_services.py::RaisesContext": [
+        "tests/test_services.py::assert_raises"
+      ],
+      "tests/test_services.py::assert_raises": [
+        "tests/test_services.py::test_authenticate_invalid_user",
+        "tests/test_services.py::test_authenticate_invalid_password"
+      ]
+    },
+    "decorated_by": {
+      "src/server.py::APIServer._handle_logout": [
+        "src/auth.py::authenticate"
+      ],
+      "src/server.py::APIServer._handle_users": [
+        "src/auth.py::authenticate"
+      ]
+    },
+    "decorates": {
+      "src/auth.py::authenticate": [
+        "src/server.py::APIServer._handle_logout",
+        "src/server.py::APIServer._handle_users"
+      ]
+    },
+    "referenced_by": {
+      "src/config.py::DEBUG": [
+        "src/server.py::APIServer.start"
+      ],
+      "src/config.py::SECRET_KEY": [
+        "src/auth.py::_hash_password",
+        "src/auth.py::generate_token"
+      ],
+      "src/config.py::SERVER_HOST": [
+        "src/server.py::APIServer.__init__"
+      ],
+      "src/config.py::SERVER_PORT": [
+        "src/server.py::APIServer.__init__",
+        "tests/test_server.py::test_server_initialization"
+      ],
+      "src/config.py::USER_ROLE": [
+        "src/services.py::UserService.create_user"
+      ],
+      "src/config.py::VALID_EMAIL_DOMAINS": [
+        "src/services.py::UserService._validate_email"
+      ]
+    },
+    "references": {
+      "src/auth.py::_hash_password": [
+        "src/config.py::SECRET_KEY"
+      ],
+      "src/auth.py::generate_token": [
+        "src/config.py::SECRET_KEY"
+      ],
+      "src/server.py::APIServer.__init__": [
+        "src/config.py::SERVER_HOST",
+        "src/config.py::SERVER_PORT"
+      ],
+      "src/server.py::APIServer.start": [
+        "src/config.py::DEBUG"
+      ],
+      "src/services.py::UserService._validate_email": [
+        "src/config.py::VALID_EMAIL_DOMAINS"
+      ],
+      "src/services.py::UserService.create_user": [
+        "src/config.py::USER_ROLE"
+      ],
+      "tests/test_server.py::test_server_initialization": [
+        "src/config.py::SERVER_PORT"
+      ]
+    }
+  },
+  "content_hash": "fbb61d23d551cfa9eae90beb4c9c5c5d1c3a7c4d2c66ef92906d7a5e04b42693",
+  "files": {
+    "src/__init__.py": {
+      "docstring": "API server package.",
+      "imports": [
+        {
+          "level": 0,
+          "line": 3,
+          "module": "server",
+          "names": [
+            {
+              "asname": null,
+              "name": "APIServer"
+            }
+          ],
+          "resolved_file": "src/server.py",
+          "style": "from"
+        },
+        {
+          "level": 0,
+          "line": 4,
+          "module": "services",
+          "names": [
+            {
+              "asname": null,
+              "name": "UserService"
+            },
+            {
+              "asname": null,
+              "name": "SessionManager"
+            }
+          ],
+          "resolved_file": "src/services.py",
+          "style": "from"
+        }
+      ],
+      "kind": "source",
+      "lines": 4,
+      "module": null,
+      "parse_ok": true,
+      "sha1": "a09f6f24ab22eb1f3f7089592651330697d26328"
+    },
+    "src/auth.py": {
+      "docstring": "Authentication and authorization utilities.",
+      "imports": [
+        {
+          "level": 0,
+          "line": 3,
+          "module": "hashlib",
+          "names": [
+            {
+              "asname": null,
+              "name": "hashlib"
+            }
+          ],
+          "resolved_file": null,
+          "style": "import"
+        },
+        {
+          "level": 0,
+          "line": 4,
+          "module": "config",
+          "names": [
+            {
+              "asname": null,
+              "name": "SECRET_KEY"
+            },
+            {
+              "asname": null,
+              "name": "TOKEN_EXPIRY"
+            }
+          ],
+          "resolved_file": "src/config.py",
+          "style": "from"
+        }
+      ],
+      "kind": "source",
+      "lines": 42,
+      "module": "auth",
+      "parse_ok": true,
+      "sha1": "22cf31cb6e02f4e3c3120656d1e1a9a43ba3334f"
+    },
+    "src/config.py": {
+      "docstring": "Configuration and constants for API server.",
+      "imports": [],
+      "kind": "source",
+      "lines": 31,
+      "module": "config",
+      "parse_ok": true,
+      "sha1": "856ae119ea1f33936e16ba668b40eca117be0286"
+    },
+    "src/server.py": {
+      "docstring": "API Server implementation.",
+      "imports": [
+        {
+          "level": 0,
+          "line": 3,
+          "module": "config",
+          "names": [
+            {
+              "asname": null,
+              "name": "SERVER_HOST"
+            },
+            {
+              "asname": null,
+              "name": "SERVER_PORT"
+            },
+            {
+              "asname": null,
+              "name": "DEBUG"
+            }
+          ],
+          "resolved_file": "src/config.py",
+          "style": "from"
+        },
+        {
+          "level": 0,
+          "line": 4,
+          "module": "services",
+          "names": [
+            {
+              "asname": null,
+              "name": "UserService"
+            },
+            {
+              "asname": null,
+              "name": "SessionManager"
+            }
+          ],
+          "resolved_file": "src/services.py",
+          "style": "from"
+        },
+        {
+          "level": 0,
+          "line": 5,
+          "module": "auth",
+          "names": [
+            {
+              "asname": null,
+              "name": "authenticate"
+            },
+            {
+              "asname": null,
+              "name": "generate_token"
+            }
+          ],
+          "resolved_file": "src/auth.py",
+          "style": "from"
+        }
+      ],
+      "kind": "source",
+      "lines": 71,
+      "module": "server",
+      "parse_ok": true,
+      "sha1": "d60099f0d14178739fdadea4e2d48056de2af22e"
+    },
+    "src/services.py": {
+      "docstring": "Business logic services.",
+      "imports": [
+        {
+          "level": 0,
+          "line": 3,
+          "module": "config",
+          "names": [
+            {
+              "asname": null,
+              "name": "MIN_PASSWORD_LENGTH"
+            },
+            {
+              "asname": null,
+              "name": "MAX_PASSWORD_LENGTH"
+            },
+            {
+              "asname": null,
+              "name": "MIN_USERNAME_LENGTH"
+            },
+            {
+              "asname": null,
+              "name": "MAX_USERNAME_LENGTH"
+            },
+            {
+              "asname": null,
+              "name": "VALID_EMAIL_DOMAINS"
+            },
+            {
+              "asname": null,
+              "name": "ADMIN_ROLE"
+            },
+            {
+              "asname": null,
+              "name": "USER_ROLE"
+            }
+          ],
+          "resolved_file": "src/config.py",
+          "style": "from"
+        },
+        {
+          "level": 0,
+          "line": 8,
+          "module": "auth",
+          "names": [
+            {
+              "asname": null,
+              "name": "_hash_password"
+            },
+            {
+              "asname": null,
+              "name": "InvalidTokenException"
+            },
+            {
+              "asname": null,
+              "name": "generate_token"
+            }
+          ],
+          "resolved_file": "src/auth.py",
+          "style": "from"
+        }
+      ],
+      "kind": "source",
+      "lines": 102,
+      "module": "services",
+      "parse_ok": true,
+      "sha1": "9aac4abb6d0719bee6055f93b2b62245544af277"
+    },
+    "tests/__init__.py": {
+      "docstring": "Tests for API server.",
+      "imports": [],
+      "kind": "test",
+      "lines": 1,
+      "module": null,
+      "parse_ok": true,
+      "sha1": "9006ea2ed1ca8eb389f149ae020bdae5479ee953"
+    },
+    "tests/test_auth.py": {
+      "docstring": "Tests for authentication module.",
+      "imports": [
+        {
+          "level": 0,
+          "line": 3,
+          "module": "sys",
+          "names": [
+            {
+              "asname": null,
+              "name": "sys"
+            }
+          ],
+          "resolved_file": null,
+          "style": "import"
+        },
+        {
+          "level": 0,
+          "line": 4,
+          "module": "pathlib",
+          "names": [
+            {
+              "asname": null,
+              "name": "Path"
+            }
+          ],
+          "resolved_file": null,
+          "style": "from"
+        },
+        {
+          "level": 0,
+          "line": 8,
+          "module": "auth",
+          "names": [
+            {
+              "asname": null,
+              "name": "_hash_password"
+            },
+            {
+              "asname": null,
+              "name": "validate_password"
+            },
+            {
+              "asname": null,
+              "name": "generate_token"
+            },
+            {
+              "asname": null,
+              "name": "InvalidTokenException"
+            }
+          ],
+          "resolved_file": "src/auth.py",
+          "style": "from"
+        },
+        {
+          "level": 0,
+          "line": 9,
+          "module": "config",
+          "names": [
+            {
+              "asname": null,
+              "name": "SECRET_KEY"
+            }
+          ],
+          "resolved_file": "src/config.py",
+          "style": "from"
+        }
+      ],
+      "kind": "test",
+      "lines": 44,
+      "module": null,
+      "parse_ok": true,
+      "sha1": "08b507b98d08328d540b98044ed0b412cbe7b085"
+    },
+    "tests/test_server.py": {
+      "docstring": "Tests for API server.",
+      "imports": [
+        {
+          "level": 0,
+          "line": 3,
+          "module": "sys",
+          "names": [
+            {
+              "asname": null,
+              "name": "sys"
+            }
+          ],
+          "resolved_file": null,
+          "style": "import"
+        },
+        {
+          "level": 0,
+          "line": 4,
+          "module": "pathlib",
+          "names": [
+            {
+              "asname": null,
+              "name": "Path"
+            }
+          ],
+          "resolved_file": null,
+          "style": "from"
+        },
+        {
+          "level": 0,
+          "line": 8,
+          "module": "server",
+          "names": [
+            {
+              "asname": null,
+              "name": "APIServer"
+            }
+          ],
+          "resolved_file": "src/server.py",
+          "style": "from"
+        },
+        {
+          "level": 0,
+          "line": 9,
+          "module": "services",
+          "names": [
+            {
+              "asname": null,
+              "name": "UserService"
+            }
+          ],
+          "resolved_file": "src/services.py",
+          "style": "from"
+        },
+        {
+          "level": 0,
+          "line": 10,
+          "module": "config",
+          "names": [
+            {
+              "asname": null,
+              "name": "SERVER_PORT"
+            },
+            {
+              "asname": null,
+              "name": "ADMIN_ROLE"
+            }
+          ],
+          "resolved_file": "src/config.py",
+          "style": "from"
+        }
+      ],
+      "kind": "test",
+      "lines": 54,
+      "module": null,
+      "parse_ok": true,
+      "sha1": "8592563c8a42fd64200729c734bcc008359f52aa"
+    },
+    "tests/test_services.py": {
+      "docstring": "Tests for business logic services.",
+      "imports": [
+        {
+          "level": 0,
+          "line": 3,
+          "module": "sys",
+          "names": [
+            {
+              "asname": null,
+              "name": "sys"
+            }
+          ],
+          "resolved_file": null,
+          "style": "import"
+        },
+        {
+          "level": 0,
+          "line": 4,
+          "module": "pathlib",
+          "names": [
+            {
+              "asname": null,
+              "name": "Path"
+            }
+          ],
+          "resolved_file": null,
+          "style": "from"
+        },
+        {
+          "level": 0,
+          "line": 8,
+          "module": "services",
+          "names": [
+            {
+              "asname": null,
+              "name": "UserService"
+            },
+            {
+              "asname": null,
+              "name": "SessionManager"
+            }
+          ],
+          "resolved_file": "src/services.py",
+          "style": "from"
+        },
+        {
+          "level": 0,
+          "line": 9,
+          "module": "config",
+          "names": [
+            {
+              "asname": null,
+              "name": "MIN_PASSWORD_LENGTH"
+            },
+            {
+              "asname": null,
+              "name": "MAX_PASSWORD_LENGTH"
+            },
+            {
+              "asname": null,
+              "name": "VALID_EMAIL_DOMAINS"
+            }
+          ],
+          "resolved_file": "src/config.py",
+          "style": "from"
+        },
+        {
+          "level": 0,
+          "line": 10,
+          "module": "auth",
+          "names": [
+            {
+              "asname": null,
+              "name": "InvalidTokenException"
+            }
+          ],
+          "resolved_file": "src/auth.py",
+          "style": "from"
+        }
+      ],
+      "kind": "test",
+      "lines": 94,
+      "module": null,
+      "parse_ok": true,
+      "sha1": "dfca08e4b61b2e04461af6d37c1e0f61dc75a56f"
+    }
+  },
+  "generated_at": "2026-10-25T10:28:30.192048Z",
+  "import_roots": [
+    "src"
+  ],
+  "parse_errors": [],
+  "run_id": "eval_api_server_20261025_155829",
+  "schema_version": "1.2",
+  "symbols": {
+    "src/auth.py::AuthException": {
+      "approx_tokens": 20,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [
+        "Exception"
+      ],
+      "builtin_calls": [],
+      "char_count": 81,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Base authentication exception.",
+      "file": "src/auth.py",
+      "is_test": false,
+      "kind": "class",
+      "line_count": 3,
+      "line_end": 9,
+      "line_start": 7,
+      "name": "AuthException",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/auth.py::InvalidTokenException": {
+      "approx_tokens": 22,
+      "attr_types": {},
+      "bases": [
+        "src/auth.py::AuthException"
+      ],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 91,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Token is invalid or expired.",
+      "file": "src/auth.py",
+      "is_test": false,
+      "kind": "class",
+      "line_count": 3,
+      "line_end": 14,
+      "line_start": 12,
+      "name": "InvalidTokenException",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/auth.py::_hash_password": {
+      "approx_tokens": 38,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 153,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Hash a password using SHA256.",
+      "file": "src/auth.py",
+      "is_test": false,
+      "kind": "function",
+      "line_count": 3,
+      "line_end": 19,
+      "line_start": 17,
+      "name": "_hash_password",
+      "parent_class": null,
+      "references": [
+        "src/config.py::SECRET_KEY"
+      ],
+      "signature": "(password: str) -> str",
+      "unresolved": [
+        {
+          "expr": "hashlib.sha256((password + SECRET_KEY).encode()).hexdigest",
+          "line": 19,
+          "name": "hexdigest",
+          "reason": "dynamic_call"
+        },
+        {
+          "expr": "hashlib.sha256",
+          "line": 19,
+          "name": "sha256",
+          "reason": "external_module"
+        },
+        {
+          "expr": "(password + SECRET_KEY).encode",
+          "line": 19,
+          "name": "encode",
+          "reason": "dynamic_call"
+        }
+      ],
+      "unresolved_calls": 3,
+      "value_preview": null
+    },
+    "src/auth.py::authenticate": {
+      "approx_tokens": 67,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [
+        "get"
+      ],
+      "char_count": 271,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Decorator to require authentication.",
+      "file": "src/auth.py",
+      "is_test": false,
+      "kind": "function",
+      "line_count": 8,
+      "line_end": 42,
+      "line_start": 35,
+      "name": "authenticate",
+      "parent_class": null,
+      "references": [],
+      "signature": "(func)",
+      "unresolved": [
+        {
+          "expr": "func",
+          "line": 40,
+          "name": "func",
+          "reason": "parameter_call"
+        }
+      ],
+      "unresolved_calls": 1,
+      "value_preview": null
+    },
+    "src/auth.py::generate_token": {
+      "approx_tokens": 31,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 127,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Generate an authentication token.",
+      "file": "src/auth.py",
+      "is_test": false,
+      "kind": "function",
+      "line_count": 3,
+      "line_end": 32,
+      "line_start": 30,
+      "name": "generate_token",
+      "parent_class": null,
+      "references": [
+        "src/config.py::SECRET_KEY"
+      ],
+      "signature": "(user_id: str) -> str",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/auth.py::validate_password": {
+      "approx_tokens": 49,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 196,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Validate a password against hash.",
+      "file": "src/auth.py",
+      "is_test": false,
+      "kind": "function",
+      "line_count": 6,
+      "line_end": 27,
+      "line_start": 22,
+      "name": "validate_password",
+      "parent_class": null,
+      "references": [],
+      "signature": "(password: str, hashed: str) -> bool",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/config.py::ADMIN_ROLE": {
+      "approx_tokens": 5,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 20,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 29,
+      "line_start": 29,
+      "name": "ADMIN_ROLE",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "ADMIN_ROLE = \"admin\""
+    },
+    "src/config.py::DB_HOST": {
+      "approx_tokens": 5,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 21,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 10,
+      "line_start": 10,
+      "name": "DB_HOST",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "DB_HOST = \"localhost\""
+    },
+    "src/config.py::DB_NAME": {
+      "approx_tokens": 4,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 18,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 12,
+      "line_start": 12,
+      "name": "DB_NAME",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "DB_NAME = \"api_db\""
+    },
+    "src/config.py::DB_PASSWORD": {
+      "approx_tokens": 6,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 24,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 14,
+      "line_start": 14,
+      "name": "DB_PASSWORD",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "DB_PASSWORD = \"password\""
+    },
+    "src/config.py::DB_PORT": {
+      "approx_tokens": 3,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 14,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 11,
+      "line_start": 11,
+      "name": "DB_PORT",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "DB_PORT = 5432"
+    },
+    "src/config.py::DB_USER": {
+      "approx_tokens": 5,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 20,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 13,
+      "line_start": 13,
+      "name": "DB_USER",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "DB_USER = \"postgres\""
+    },
+    "src/config.py::DEBUG": {
+      "approx_tokens": 3,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 12,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 26,
+      "line_start": 26,
+      "name": "DEBUG",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "DEBUG = True"
+    },
+    "src/config.py::GUEST_ROLE": {
+      "approx_tokens": 5,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 20,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 31,
+      "line_start": 31,
+      "name": "GUEST_ROLE",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "GUEST_ROLE = \"guest\""
+    },
+    "src/config.py::LOCKOUT_DURATION": {
+      "approx_tokens": 9,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 36,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 7,
+      "line_start": 7,
+      "name": "LOCKOUT_DURATION",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "LOCKOUT_DURATION = 900  # 15 minutes"
+    },
+    "src/config.py::MAX_LOGIN_ATTEMPTS": {
+      "approx_tokens": 5,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 22,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 6,
+      "line_start": 6,
+      "name": "MAX_LOGIN_ATTEMPTS",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "MAX_LOGIN_ATTEMPTS = 5"
+    },
+    "src/config.py::MAX_PASSWORD_LENGTH": {
+      "approx_tokens": 6,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 25,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 18,
+      "line_start": 18,
+      "name": "MAX_PASSWORD_LENGTH",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "MAX_PASSWORD_LENGTH = 128"
+    },
+    "src/config.py::MAX_USERNAME_LENGTH": {
+      "approx_tokens": 6,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 24,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 20,
+      "line_start": 20,
+      "name": "MAX_USERNAME_LENGTH",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "MAX_USERNAME_LENGTH = 32"
+    },
+    "src/config.py::MIN_PASSWORD_LENGTH": {
+      "approx_tokens": 5,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 23,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 17,
+      "line_start": 17,
+      "name": "MIN_PASSWORD_LENGTH",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "MIN_PASSWORD_LENGTH = 8"
+    },
+    "src/config.py::MIN_USERNAME_LENGTH": {
+      "approx_tokens": 5,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 23,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 19,
+      "line_start": 19,
+      "name": "MIN_USERNAME_LENGTH",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "MIN_USERNAME_LENGTH = 3"
+    },
+    "src/config.py::SECRET_KEY": {
+      "approx_tokens": 10,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 41,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 4,
+      "line_start": 4,
+      "name": "SECRET_KEY",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "SECRET_KEY = \"dev-key-not-for-production\""
+    },
+    "src/config.py::SERVER_HOST": {
+      "approx_tokens": 5,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 23,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 24,
+      "line_start": 24,
+      "name": "SERVER_HOST",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "SERVER_HOST = \"0.0.0.0\""
+    },
+    "src/config.py::SERVER_PORT": {
+      "approx_tokens": 4,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 18,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 25,
+      "line_start": 25,
+      "name": "SERVER_PORT",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "SERVER_PORT = 8000"
+    },
+    "src/config.py::TOKEN_EXPIRY": {
+      "approx_tokens": 7,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 30,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 5,
+      "line_start": 5,
+      "name": "TOKEN_EXPIRY",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "TOKEN_EXPIRY = 3600  # seconds"
+    },
+    "src/config.py::USER_ROLE": {
+      "approx_tokens": 4,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 18,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 30,
+      "line_start": 30,
+      "name": "USER_ROLE",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "USER_ROLE = \"user\""
+    },
+    "src/config.py::VALID_EMAIL_DOMAINS": {
+      "approx_tokens": 12,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 49,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/config.py",
+      "is_test": false,
+      "kind": "constant",
+      "line_count": 1,
+      "line_end": 21,
+      "line_start": 21,
+      "name": "VALID_EMAIL_DOMAINS",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": "VALID_EMAIL_DOMAINS = [\"example.com\", \"test.com\"]"
+    },
+    "src/server.py::APIServer": {
+      "approx_tokens": 467,
+      "attr_types": {
+        "session_manager": "src/services.py::SessionManager",
+        "user_service": "src/services.py::UserService"
+      },
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 1869,
+      "children": [
+        "src/server.py::APIServer.__init__",
+        "src/server.py::APIServer._handle_login",
+        "src/server.py::APIServer._handle_logout",
+        "src/server.py::APIServer._handle_users",
+        "src/server.py::APIServer._initialize_database",
+        "src/server.py::APIServer._initialize_routes",
+        "src/server.py::APIServer.start",
+        "src/server.py::APIServer.stop"
+      ],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Main API server class.",
+      "file": "src/server.py",
+      "is_test": false,
+      "kind": "class",
+      "line_count": 64,
+      "line_end": 71,
+      "line_start": 8,
+      "name": "APIServer",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/server.py::APIServer.__init__": {
+      "approx_tokens": 77,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 308,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Initialize server and services.",
+      "file": "src/server.py",
+      "is_test": false,
+      "kind": "method",
+      "line_count": 9,
+      "line_end": 19,
+      "line_start": 11,
+      "name": "__init__",
+      "parent_class": "src/server.py::APIServer",
+      "references": [
+        "src/config.py::SERVER_HOST",
+        "src/config.py::SERVER_PORT"
+      ],
+      "signature": "(self)",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/server.py::APIServer._handle_login": {
+      "approx_tokens": 76,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 306,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Handle login request.",
+      "file": "src/server.py",
+      "is_test": false,
+      "kind": "method",
+      "line_count": 8,
+      "line_end": 40,
+      "line_start": 33,
+      "name": "_handle_login",
+      "parent_class": "src/server.py::APIServer",
+      "references": [],
+      "signature": "(self, username: str, password: str)",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/server.py::APIServer._handle_logout": {
+      "approx_tokens": 34,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 137,
+      "children": [],
+      "decorator_targets": [
+        "src/auth.py::authenticate"
+      ],
+      "decorators": [
+        "authenticate"
+      ],
+      "docstring": "Handle logout request.",
+      "file": "src/server.py",
+      "is_test": false,
+      "kind": "method",
+      "line_count": 4,
+      "line_end": 45,
+      "line_start": 42,
+      "name": "_handle_logout",
+      "parent_class": "src/server.py::APIServer",
+      "references": [],
+      "signature": "(self, token: str)",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/server.py::APIServer._handle_users": {
+      "approx_tokens": 39,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [
+        "list"
+      ],
+      "char_count": 157,
+      "children": [],
+      "decorator_targets": [
+        "src/auth.py::authenticate"
+      ],
+      "decorators": [
+        "authenticate"
+      ],
+      "docstring": "Handle users request.",
+      "file": "src/server.py",
+      "is_test": false,
+      "kind": "method",
+      "line_count": 4,
+      "line_end": 50,
+      "line_start": 47,
+      "name": "_handle_users",
+      "parent_class": "src/server.py::APIServer",
+      "references": [],
+      "signature": "(self, token: str)",
+      "unresolved": [
+        {
+          "expr": "self.user_service.users.keys",
+          "line": 50,
+          "name": "keys",
+          "reason": "attribute_type_unknown"
+        }
+      ],
+      "unresolved_calls": 1,
+      "value_preview": null
+    },
+    "src/server.py::APIServer._initialize_database": {
+      "approx_tokens": 28,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 114,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Initialize database connection.",
+      "file": "src/server.py",
+      "is_test": false,
+      "kind": "method",
+      "line_count": 3,
+      "line_end": 23,
+      "line_start": 21,
+      "name": "_initialize_database",
+      "parent_class": "src/server.py::APIServer",
+      "references": [],
+      "signature": "(self)",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/server.py::APIServer._initialize_routes": {
+      "approx_tokens": 60,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 242,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Initialize API routes.",
+      "file": "src/server.py",
+      "is_test": false,
+      "kind": "method",
+      "line_count": 7,
+      "line_end": 31,
+      "line_start": 25,
+      "name": "_initialize_routes",
+      "parent_class": "src/server.py::APIServer",
+      "references": [],
+      "signature": "(self)",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/server.py::APIServer.start": {
+      "approx_tokens": 107,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [
+        "print"
+      ],
+      "char_count": 429,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Start the server.",
+      "file": "src/server.py",
+      "is_test": false,
+      "kind": "method",
+      "line_count": 16,
+      "line_end": 67,
+      "line_start": 52,
+      "name": "start",
+      "parent_class": "src/server.py::APIServer",
+      "references": [
+        "src/config.py::DEBUG"
+      ],
+      "signature": "(self)",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/server.py::APIServer.stop": {
+      "approx_tokens": 19,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 79,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Stop the server.",
+      "file": "src/server.py",
+      "is_test": false,
+      "kind": "method",
+      "line_count": 3,
+      "line_end": 71,
+      "line_start": 69,
+      "name": "stop",
+      "parent_class": "src/server.py::APIServer",
+      "references": [],
+      "signature": "(self)",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/services.py::BaseService": {
+      "approx_tokens": 31,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 126,
+      "children": [
+        "src/services.py::BaseService.__init__"
+      ],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Base service class.",
+      "file": "src/services.py",
+      "is_test": false,
+      "kind": "class",
+      "line_count": 6,
+      "line_end": 16,
+      "line_start": 11,
+      "name": "BaseService",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/services.py::BaseService.__init__": {
+      "approx_tokens": 18,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 72,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "src/services.py",
+      "is_test": false,
+      "kind": "method",
+      "line_count": 3,
+      "line_end": 16,
+      "line_start": 14,
+      "name": "__init__",
+      "parent_class": "src/services.py::BaseService",
+      "references": [],
+      "signature": "(self)",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/services.py::SessionManager": {
+      "approx_tokens": 133,
+      "attr_types": {
+        "user_service": "src/services.py::UserService"
+      },
+      "bases": [
+        "src/services.py::BaseService"
+      ],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 534,
+      "children": [
+        "src/services.py::SessionManager.__init__",
+        "src/services.py::SessionManager.start_session"
+      ],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Manage user sessions.",
+      "file": "src/services.py",
+      "is_test": false,
+      "kind": "class",
+      "line_count": 16,
+      "line_end": 102,
+      "line_start": 87,
+      "name": "SessionManager",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/services.py::SessionManager.__init__": {
+      "approx_tokens": 40,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [
+        "super"
+      ],
+      "char_count": 162,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Initialize with user service.",
+      "file": "src/services.py",
+      "is_test": false,
+      "kind": "method",
+      "line_count": 4,
+      "line_end": 93,
+      "line_start": 90,
+      "name": "__init__",
+      "parent_class": "src/services.py::SessionManager",
+      "references": [],
+      "signature": "(self, user_service: UserService)",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/services.py::SessionManager.start_session": {
+      "approx_tokens": 73,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 294,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Start a session for user.",
+      "file": "src/services.py",
+      "is_test": false,
+      "kind": "method",
+      "line_count": 8,
+      "line_end": 102,
+      "line_start": 95,
+      "name": "start_session",
+      "parent_class": "src/services.py::SessionManager",
+      "references": [],
+      "signature": "(self, username: str, password: str) -> str",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/services.py::UserService": {
+      "approx_tokens": 532,
+      "attr_types": {},
+      "bases": [
+        "src/services.py::BaseService"
+      ],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 2128,
+      "children": [
+        "src/services.py::UserService._validate_email",
+        "src/services.py::UserService._validate_user",
+        "src/services.py::UserService.authenticate",
+        "src/services.py::UserService.create_user",
+        "src/services.py::UserService.update_user"
+      ],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "User management service.",
+      "file": "src/services.py",
+      "is_test": false,
+      "kind": "class",
+      "line_count": 66,
+      "line_end": 84,
+      "line_start": 19,
+      "name": "UserService",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/services.py::UserService._validate_email": {
+      "approx_tokens": 76,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [
+        "split"
+      ],
+      "char_count": 305,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Validate email format and domain.",
+      "file": "src/services.py",
+      "is_test": false,
+      "kind": "method",
+      "line_count": 9,
+      "line_end": 34,
+      "line_start": 26,
+      "name": "_validate_email",
+      "parent_class": "src/services.py::UserService",
+      "references": [
+        "src/config.py::VALID_EMAIL_DOMAINS"
+      ],
+      "signature": "(self, email: str) -> bool",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/services.py::UserService._validate_user": {
+      "approx_tokens": 33,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 133,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Validate user data.",
+      "file": "src/services.py",
+      "is_test": false,
+      "kind": "method",
+      "line_count": 3,
+      "line_end": 24,
+      "line_start": 22,
+      "name": "_validate_user",
+      "parent_class": "src/services.py::UserService",
+      "references": [],
+      "signature": "(self, username: str, password: str, email: str) -> bool",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/services.py::UserService.authenticate": {
+      "approx_tokens": 131,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 527,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Authenticate user and return token.",
+      "file": "src/services.py",
+      "is_test": false,
+      "kind": "method",
+      "line_count": 14,
+      "line_end": 84,
+      "line_start": 71,
+      "name": "authenticate",
+      "parent_class": "src/services.py::UserService",
+      "references": [],
+      "signature": "(self, username: str, password: str) -> str",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/services.py::UserService.create_user": {
+      "approx_tokens": 162,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 649,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Create a new user.",
+      "file": "src/services.py",
+      "is_test": false,
+      "kind": "method",
+      "line_count": 22,
+      "line_end": 57,
+      "line_start": 36,
+      "name": "create_user",
+      "parent_class": "src/services.py::UserService",
+      "references": [
+        "src/config.py::USER_ROLE"
+      ],
+      "signature": "(self, username: str, password: str, email: str) -> bool",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "src/services.py::UserService.update_user": {
+      "approx_tokens": 104,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 418,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Update user password.",
+      "file": "src/services.py",
+      "is_test": false,
+      "kind": "method",
+      "line_count": 11,
+      "line_end": 69,
+      "line_start": 59,
+      "name": "update_user",
+      "parent_class": "src/services.py::UserService",
+      "references": [],
+      "signature": "(self, username: str, new_password: str) -> bool",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_auth.py::test_generate_token": {
+      "approx_tokens": 31,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 127,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Test token generation.",
+      "file": "tests/test_auth.py",
+      "is_test": true,
+      "kind": "function",
+      "line_count": 4,
+      "line_end": 37,
+      "line_start": 34,
+      "name": "test_generate_token",
+      "parent_class": null,
+      "references": [],
+      "signature": "()",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_auth.py::test_hash_password_deterministic": {
+      "approx_tokens": 55,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 222,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Test that password hashing is deterministic.",
+      "file": "tests/test_auth.py",
+      "is_test": true,
+      "kind": "function",
+      "line_count": 6,
+      "line_end": 17,
+      "line_start": 12,
+      "name": "test_hash_password_deterministic",
+      "parent_class": null,
+      "references": [],
+      "signature": "()",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_auth.py::test_token_is_unique": {
+      "approx_tokens": 45,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 181,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Test that tokens include some identifier.",
+      "file": "tests/test_auth.py",
+      "is_test": true,
+      "kind": "function",
+      "line_count": 5,
+      "line_end": 44,
+      "line_start": 40,
+      "name": "test_token_is_unique",
+      "parent_class": null,
+      "references": [],
+      "signature": "()",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_auth.py::test_validate_password_correct": {
+      "approx_tokens": 54,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 216,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Test password validation with correct password.",
+      "file": "tests/test_auth.py",
+      "is_test": true,
+      "kind": "function",
+      "line_count": 5,
+      "line_end": 24,
+      "line_start": 20,
+      "name": "test_validate_password_correct",
+      "parent_class": null,
+      "references": [],
+      "signature": "()",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_auth.py::test_validate_password_incorrect": {
+      "approx_tokens": 57,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 228,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Test password validation with incorrect password.",
+      "file": "tests/test_auth.py",
+      "is_test": true,
+      "kind": "function",
+      "line_count": 5,
+      "line_end": 31,
+      "line_start": 27,
+      "name": "test_validate_password_incorrect",
+      "parent_class": null,
+      "references": [],
+      "signature": "()",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_server.py::test_server_initialization": {
+      "approx_tokens": 44,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 176,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Test server initializes correctly.",
+      "file": "tests/test_server.py",
+      "is_test": true,
+      "kind": "function",
+      "line_count": 5,
+      "line_end": 17,
+      "line_start": 13,
+      "name": "test_server_initialization",
+      "parent_class": null,
+      "references": [
+        "src/config.py::SERVER_PORT"
+      ],
+      "signature": "()",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_server.py::test_server_login_flow": {
+      "approx_tokens": 91,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 364,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Test complete login flow.",
+      "file": "tests/test_server.py",
+      "is_test": true,
+      "kind": "function",
+      "line_count": 12,
+      "line_end": 54,
+      "line_start": 43,
+      "name": "test_server_login_flow",
+      "parent_class": null,
+      "references": [],
+      "signature": "()",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_server.py::test_server_start": {
+      "approx_tokens": 72,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 291,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Test server start sequence.",
+      "file": "tests/test_server.py",
+      "is_test": true,
+      "kind": "function",
+      "line_count": 11,
+      "line_end": 30,
+      "line_start": 20,
+      "name": "test_server_start",
+      "parent_class": null,
+      "references": [],
+      "signature": "()",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_server.py::test_server_stop": {
+      "approx_tokens": 46,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 187,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Test server stop.",
+      "file": "tests/test_server.py",
+      "is_test": true,
+      "kind": "function",
+      "line_count": 8,
+      "line_end": 40,
+      "line_start": 33,
+      "name": "test_server_stop",
+      "parent_class": null,
+      "references": [],
+      "signature": "()",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_services.py::RaisesContext": {
+      "approx_tokens": 79,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 316,
+      "children": [
+        "tests/test_services.py::RaisesContext.__enter__",
+        "tests/test_services.py::RaisesContext.__exit__"
+      ],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "tests/test_services.py",
+      "is_test": true,
+      "kind": "class",
+      "line_count": 7,
+      "line_end": 93,
+      "line_start": 87,
+      "name": "RaisesContext",
+      "parent_class": null,
+      "references": [],
+      "signature": null,
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_services.py::RaisesContext.__enter__": {
+      "approx_tokens": 13,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 52,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "tests/test_services.py",
+      "is_test": false,
+      "kind": "method",
+      "line_count": 2,
+      "line_end": 89,
+      "line_start": 88,
+      "name": "__enter__",
+      "parent_class": "tests/test_services.py::RaisesContext",
+      "references": [],
+      "signature": "(self)",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_services.py::RaisesContext.__exit__": {
+      "approx_tokens": 59,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [
+        "AssertionError",
+        "issubclass"
+      ],
+      "char_count": 238,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": null,
+      "file": "tests/test_services.py",
+      "is_test": false,
+      "kind": "method",
+      "line_count": 4,
+      "line_end": 93,
+      "line_start": 90,
+      "name": "__exit__",
+      "parent_class": "tests/test_services.py::RaisesContext",
+      "references": [],
+      "signature": "(self, exc_type, exc_val, exc_tb)",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_services.py::assert_raises": {
+      "approx_tokens": 108,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [
+        "AssertionError",
+        "issubclass"
+      ],
+      "char_count": 434,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Simple context manager for exception testing.",
+      "file": "tests/test_services.py",
+      "is_test": false,
+      "kind": "function",
+      "line_count": 10,
+      "line_end": 94,
+      "line_start": 85,
+      "name": "assert_raises",
+      "parent_class": null,
+      "references": [],
+      "signature": "(exception_type)",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_services.py::test_authenticate_invalid_password": {
+      "approx_tokens": 75,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 303,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Test authentication with invalid password.",
+      "file": "tests/test_services.py",
+      "is_test": true,
+      "kind": "function",
+      "line_count": 7,
+      "line_end": 58,
+      "line_start": 52,
+      "name": "test_authenticate_invalid_password",
+      "parent_class": null,
+      "references": [],
+      "signature": "()",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_services.py::test_authenticate_invalid_user": {
+      "approx_tokens": 56,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 224,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Test authentication with invalid username.",
+      "file": "tests/test_services.py",
+      "is_test": true,
+      "kind": "function",
+      "line_count": 5,
+      "line_end": 49,
+      "line_start": 45,
+      "name": "test_authenticate_invalid_user",
+      "parent_class": null,
+      "references": [],
+      "signature": "()",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_services.py::test_authenticate_valid": {
+      "approx_tokens": 77,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 308,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Test authentication with valid credentials.",
+      "file": "tests/test_services.py",
+      "is_test": true,
+      "kind": "function",
+      "line_count": 8,
+      "line_end": 42,
+      "line_start": 35,
+      "name": "test_authenticate_valid",
+      "parent_class": null,
+      "references": [],
+      "signature": "()",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_services.py::test_create_user_valid": {
+      "approx_tokens": 60,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 240,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Test creating a valid user.",
+      "file": "tests/test_services.py",
+      "is_test": true,
+      "kind": "function",
+      "line_count": 6,
+      "line_end": 18,
+      "line_start": 13,
+      "name": "test_create_user_valid",
+      "parent_class": null,
+      "references": [],
+      "signature": "()",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_services.py::test_create_user_validates_email": {
+      "approx_tokens": 56,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 225,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Test that user creation validates email.",
+      "file": "tests/test_services.py",
+      "is_test": true,
+      "kind": "function",
+      "line_count": 5,
+      "line_end": 25,
+      "line_start": 21,
+      "name": "test_create_user_validates_email",
+      "parent_class": null,
+      "references": [],
+      "signature": "()",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_services.py::test_create_user_validates_password": {
+      "approx_tokens": 54,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 219,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Test password validation on creation.",
+      "file": "tests/test_services.py",
+      "is_test": true,
+      "kind": "function",
+      "line_count": 5,
+      "line_end": 32,
+      "line_start": 28,
+      "name": "test_create_user_validates_password",
+      "parent_class": null,
+      "references": [],
+      "signature": "()",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_services.py::test_session_manager": {
+      "approx_tokens": 102,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 410,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Test session manager integration.",
+      "file": "tests/test_services.py",
+      "is_test": true,
+      "kind": "function",
+      "line_count": 12,
+      "line_end": 81,
+      "line_start": 70,
+      "name": "test_session_manager",
+      "parent_class": null,
+      "references": [],
+      "signature": "()",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    },
+    "tests/test_services.py::test_update_user_password": {
+      "approx_tokens": 66,
+      "attr_types": {},
+      "bases": [],
+      "bases_unresolved": [],
+      "builtin_calls": [],
+      "char_count": 264,
+      "children": [],
+      "decorator_targets": [],
+      "decorators": [],
+      "docstring": "Test updating user password.",
+      "file": "tests/test_services.py",
+      "is_test": true,
+      "kind": "function",
+      "line_count": 7,
+      "line_end": 67,
+      "line_start": 61,
+      "name": "test_update_user_password",
+      "parent_class": null,
+      "references": [],
+      "signature": "()",
+      "unresolved": [],
+      "unresolved_calls": 0,
+      "value_preview": null
+    }
+  },
+  "test_to_source": {
+    "tests/test_auth.py::test_generate_token": [
+      "src/auth.py::generate_token"
+    ],
+    "tests/test_auth.py::test_hash_password_deterministic": [
+      "src/auth.py::_hash_password"
+    ],
+    "tests/test_auth.py::test_token_is_unique": [
+      "src/auth.py::generate_token"
+    ],
+    "tests/test_auth.py::test_validate_password_correct": [
+      "src/auth.py::_hash_password",
+      "src/auth.py::validate_password"
+    ],
+    "tests/test_auth.py::test_validate_password_incorrect": [
+      "src/auth.py::_hash_password",
+      "src/auth.py::validate_password"
+    ],
+    "tests/test_server.py::test_server_initialization": [
+      "src/server.py::APIServer"
+    ],
+    "tests/test_server.py::test_server_login_flow": [
+      "src/server.py::APIServer",
+      "src/server.py::APIServer._handle_login",
+      "src/server.py::APIServer.start",
+      "src/services.py::UserService.create_user"
+    ],
+    "tests/test_server.py::test_server_start": [
+      "src/server.py::APIServer",
+      "src/server.py::APIServer.start"
+    ],
+    "tests/test_server.py::test_server_stop": [
+      "src/server.py::APIServer",
+      "src/server.py::APIServer.start",
+      "src/server.py::APIServer.stop"
+    ],
+    "tests/test_services.py::test_authenticate_invalid_password": [
+      "src/services.py::UserService",
+      "src/services.py::UserService.authenticate",
+      "src/services.py::UserService.create_user",
+      "tests/test_services.py::assert_raises"
+    ],
+    "tests/test_services.py::test_authenticate_invalid_user": [
+      "src/services.py::UserService",
+      "src/services.py::UserService.authenticate",
+      "tests/test_services.py::assert_raises"
+    ],
+    "tests/test_services.py::test_authenticate_valid": [
+      "src/services.py::UserService",
+      "src/services.py::UserService.authenticate",
+      "src/services.py::UserService.create_user"
+    ],
+    "tests/test_services.py::test_create_user_valid": [
+      "src/services.py::UserService",
+      "src/services.py::UserService.create_user"
+    ],
+    "tests/test_services.py::test_create_user_validates_email": [
+      "src/services.py::UserService",
+      "src/services.py::UserService.create_user"
+    ],
+    "tests/test_services.py::test_create_user_validates_password": [
+      "src/services.py::UserService",
+      "src/services.py::UserService.create_user"
+    ],
+    "tests/test_services.py::test_session_manager": [
+      "src/services.py::SessionManager",
+      "src/services.py::SessionManager.start_session",
+      "src/services.py::UserService",
+      "src/services.py::UserService.create_user"
+    ],
+    "tests/test_services.py::test_update_user_password": [
+      "src/services.py::UserService",
+      "src/services.py::UserService.create_user",
+      "src/services.py::UserService.update_user"
+    ]
+  },
+  "test_to_source_transitive": {
+    "tests/test_auth.py::test_generate_token": [
+      "src/auth.py::generate_token"
+    ],
+    "tests/test_auth.py::test_hash_password_deterministic": [
+      "src/auth.py::_hash_password"
+    ],
+    "tests/test_auth.py::test_token_is_unique": [
+      "src/auth.py::generate_token"
+    ],
+    "tests/test_auth.py::test_validate_password_correct": [
+      "src/auth.py::_hash_password",
+      "src/auth.py::validate_password"
+    ],
+    "tests/test_auth.py::test_validate_password_incorrect": [
+      "src/auth.py::_hash_password",
+      "src/auth.py::validate_password"
+    ],
+    "tests/test_server.py::test_server_initialization": [
+      "src/server.py::APIServer"
+    ],
+    "tests/test_server.py::test_server_login_flow": [
+      "src/auth.py::InvalidTokenException",
+      "src/auth.py::_hash_password",
+      "src/auth.py::generate_token",
+      "src/server.py::APIServer",
+      "src/server.py::APIServer._handle_login",
+      "src/server.py::APIServer._initialize_database",
+      "src/server.py::APIServer._initialize_routes",
+      "src/server.py::APIServer.start",
+      "src/services.py::SessionManager.start_session",
+      "src/services.py::UserService._validate_email",
+      "src/services.py::UserService._validate_user",
+      "src/services.py::UserService.authenticate",
+      "src/services.py::UserService.create_user"
+    ],
+    "tests/test_server.py::test_server_start": [
+      "src/server.py::APIServer",
+      "src/server.py::APIServer._initialize_database",
+      "src/server.py::APIServer._initialize_routes",
+      "src/server.py::APIServer.start"
+    ],
+    "tests/test_server.py::test_server_stop": [
+      "src/server.py::APIServer",
+      "src/server.py::APIServer._initialize_database",
+      "src/server.py::APIServer._initialize_routes",
+      "src/server.py::APIServer.start",
+      "src/server.py::APIServer.stop"
+    ],
+    "tests/test_services.py::test_authenticate_invalid_password": [
+      "src/auth.py::InvalidTokenException",
+      "src/auth.py::_hash_password",
+      "src/auth.py::generate_token",
+      "src/services.py::UserService",
+      "src/services.py::UserService._validate_email",
+      "src/services.py::UserService._validate_user",
+      "src/services.py::UserService.authenticate",
+      "src/services.py::UserService.create_user",
+      "tests/test_services.py::assert_raises"
+    ],
+    "tests/test_services.py::test_authenticate_invalid_user": [
+      "src/auth.py::InvalidTokenException",
+      "src/auth.py::_hash_password",
+      "src/auth.py::generate_token",
+      "src/services.py::UserService",
+      "src/services.py::UserService.authenticate",
+      "tests/test_services.py::assert_raises"
+    ],
+    "tests/test_services.py::test_authenticate_valid": [
+      "src/auth.py::InvalidTokenException",
+      "src/auth.py::_hash_password",
+      "src/auth.py::generate_token",
+      "src/services.py::UserService",
+      "src/services.py::UserService._validate_email",
+      "src/services.py::UserService._validate_user",
+      "src/services.py::UserService.authenticate",
+      "src/services.py::UserService.create_user"
+    ],
+    "tests/test_services.py::test_create_user_valid": [
+      "src/auth.py::_hash_password",
+      "src/services.py::UserService",
+      "src/services.py::UserService._validate_email",
+      "src/services.py::UserService._validate_user",
+      "src/services.py::UserService.create_user"
+    ],
+    "tests/test_services.py::test_create_user_validates_email": [
+      "src/auth.py::_hash_password",
+      "src/services.py::UserService",
+      "src/services.py::UserService._validate_email",
+      "src/services.py::UserService._validate_user",
+      "src/services.py::UserService.create_user"
+    ],
+    "tests/test_services.py::test_create_user_validates_password": [
+      "src/auth.py::_hash_password",
+      "src/services.py::UserService",
+      "src/services.py::UserService._validate_email",
+      "src/services.py::UserService._validate_user",
+      "src/services.py::UserService.create_user"
+    ],
+    "tests/test_services.py::test_session_manager": [
+      "src/auth.py::InvalidTokenException",
+      "src/auth.py::_hash_password",
+      "src/auth.py::generate_token",
+      "src/services.py::SessionManager",
+      "src/services.py::SessionManager.start_session",
+      "src/services.py::UserService",
+      "src/services.py::UserService._validate_email",
+      "src/services.py::UserService._validate_user",
+      "src/services.py::UserService.authenticate",
+      "src/services.py::UserService.create_user"
+    ],
+    "tests/test_services.py::test_update_user_password": [
+      "src/auth.py::_hash_password",
+      "src/services.py::UserService",
+      "src/services.py::UserService._validate_email",
+      "src/services.py::UserService._validate_user",
+      "src/services.py::UserService.create_user",
+      "src/services.py::UserService.update_user"
+    ]
+  }
+}

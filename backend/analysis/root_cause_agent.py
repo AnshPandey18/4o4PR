@@ -19,6 +19,10 @@ class RootCauseAnalysisError(ValueError):
     """Raised when the prompt, model response, or client configuration is invalid."""
 
 
+class LLMDisabledError(Exception):
+    """Raised when LLM is disabled via LLM_DISABLED environment variable."""
+
+
 class LLMClient(Protocol):
     """Minimal client contract used by the agent."""
 
@@ -84,7 +88,10 @@ class OpenAICompatibleClient:
 
     def complete(self, prompt: str) -> str:
         """Send one prompt to the configured OpenAI-compatible chat endpoint."""
-
+        # Check LLM kill switch
+        if os.getenv('LLM_DISABLED') == '1':
+            raise LLMDisabledError("LLM is disabled (LLM_DISABLED=1)")
+        
         if not self.api_key:
             raise RootCauseAnalysisError("OMNIROUTE_API_KEY is not configured")
 

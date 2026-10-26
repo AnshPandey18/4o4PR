@@ -1,0 +1,87 @@
+{
+  "bugs": [
+    {
+      "bug_id": "b_fdf12715614e",
+      "called_symbols": [
+        {
+          "file": "src/services.py",
+          "line_end": null,
+          "line_start": null,
+          "name": "UserService",
+          "resolution": "resolved",
+          "source_snapshot": null,
+          "symbol_id": "src/services.py::UserService"
+        },
+        {
+          "file": null,
+          "line_end": null,
+          "line_start": null,
+          "name": "create_user",
+          "resolution": "unresolved",
+          "source_snapshot": null,
+          "symbol_id": null
+        }
+      ],
+      "captured_output": {
+        "stderr": "",
+        "stdout": ""
+      },
+      "code": "def test_create_user_validates_password():\n    \"\"\"Test password validation on creation.\"\"\"\n    service = UserService()\n    result = service.create_user(\"testuser\", \"short\", \"test@example.com\")\n    assert result == False",
+      "error_message": "assert True == False",
+      "error_type": "AssertionError",
+      "failure_kind": "assertion",
+      "first_failing_assertion": {
+        "actual": "True",
+        "assert_total": 1,
+        "assertion_index": 1,
+        "assertions_not_evaluated": 0,
+        "expected": "False",
+        "line": 32,
+        "operator": "==",
+        "statement": "assert result == False"
+      },
+      "flaky": false,
+      "frames": [
+        {
+          "code_line": "def test_create_user_validates_password():        \"\"\"Test password validation on creation.\"\"\"        service = UserService()        result = service.create_user(\"testuser\", \"short\", \"test@example.com\")>       assert result == FalseE       assert True == False",
+          "external": false,
+          "file": "tests/test_services.py",
+          "function": "",
+          "line": 32
+        }
+      ],
+      "inferred_source_module": "src/services.py",
+      "location": {
+        "file_path": "tests/test_services.py",
+        "function": "",
+        "line_number": 32
+      },
+      "rerun_command": "pytest \"tests/test_services.py::test_create_user_validates_password\"",
+      "test_name": "tests/test_services.py::test_create_user_validates_password",
+      "traceback": "Traceback (most recent call last):\n  File \"tests/test_services.py\", line 32, in \n    def test_create_user_validates_password():        \"\"\"Test password validation on creation.\"\"\"        service = UserService()        result = service.create_user(\"testuser\", \"short\", \"test@example.com\")>       assert result == FalseE       assert True == False\nAssertionError: assert True == False"
+    }
+  ],
+  "project": {
+    "content_hash": "34bab9ce7229ffccbd859267ee63552d8dfed308abed14fff58f4a8654ea0891",
+    "pytest_version": "9.1.1",
+    "python_version": "3.13.11",
+    "root": "."
+  },
+  "run_id": "eval_api_server_20261025_155829",
+  "schema_version": "2.0",
+  "summary": {
+    "bugs_detected": 1,
+    "consistency_ok": true,
+    "duration_seconds": 0.21353888511657715,
+    "errors": 0,
+    "failed": 1,
+    "passed": 16,
+    "pytest_exit_code": 1,
+    "skipped": 0,
+    "tests_run": 17,
+    "xfailed": 0,
+    "xpassed": 0
+  },
+  "timestamp": "2026-10-25T10:28:34.290459Z",
+  "validation_hint": "Validate patches by re-running the full test node IDs, not just the failing assertion"
+}

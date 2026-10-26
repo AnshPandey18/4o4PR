@@ -673,8 +673,10 @@ class ContextBuilder:
                     tokens=tokens,
                     reason="repository_map"
                 ))
-        except:
-            pass
+        except Exception as e:
+            logger.error(f"Failed to build T5 file tree: {e}", exc_info=True)
+            # File tree is optional but failure might indicate a serious issue
+            raise
         
         if not items:
             return "", []

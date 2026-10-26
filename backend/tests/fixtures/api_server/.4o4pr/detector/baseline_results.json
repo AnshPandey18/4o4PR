@@ -1,0 +1,26 @@
+{
+  "duration_seconds": 0.20953369140625,
+  "project_content_hash": "34bab9ce7229ffccbd859267ee63552d8dfed308abed14fff58f4a8654ea0891",
+  "pytest_exit_code": 1,
+  "results": {
+    "tests/test_auth.py::test_generate_token": "passed",
+    "tests/test_auth.py::test_hash_password_deterministic": "passed",
+    "tests/test_auth.py::test_token_is_unique": "passed",
+    "tests/test_auth.py::test_validate_password_correct": "passed",
+    "tests/test_auth.py::test_validate_password_incorrect": "passed",
+    "tests/test_server.py::test_server_initialization": "passed",
+    "tests/test_server.py::test_server_login_flow": "passed",
+    "tests/test_server.py::test_server_start": "passed",
+    "tests/test_server.py::test_server_stop": "passed",
+    "tests/test_services.py::test_authenticate_invalid_password": "passed",
+    "tests/test_services.py::test_authenticate_invalid_user": "passed",
+    "tests/test_services.py::test_authenticate_valid": "passed",
+    "tests/test_services.py::test_create_user_valid": "passed",
+    "tests/test_services.py::test_create_user_validates_email": "passed",
+    "tests/test_services.py::test_create_user_validates_password": "failed",
+    "tests/test_services.py::test_session_manager": "passed",
+    "tests/test_services.py::test_update_user_password": "passed"
+  },
+  "run_id": "eval_api_server_20261025_155829",
+  "schema_version": "1.0"
+}

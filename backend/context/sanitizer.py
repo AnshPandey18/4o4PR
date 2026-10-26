@@ -4,11 +4,14 @@ Strips docstrings, comments, and redacts secrets from code before sending to LLM
 """
 
 import ast
+import logging
 import re
 import tokenize
 from io import StringIO
 from typing import List, Tuple
 from .models import SanitizationSummary
+
+logger = logging.getLogger(__name__)
 
 
 def sanitize_test_code(source: str) -> Tuple[str, SanitizationSummary]:
@@ -26,14 +29,18 @@ def sanitize_test_code(source: str) -> Tuple[str, SanitizationSummary]:
     try:
         source, docstrings_removed = _remove_docstrings(source)
         summary.docstrings_removed = docstrings_removed
-    except:
-        pass  # If AST parsing fails, leave source as-is
+    except Exception as e:
+        logger.warning(f"Failed to remove docstrings (AST parsing error): {e}")
+        # Leave source as-is if AST parsing fails
+        pass
     
     # Remove "should fail/pass" comments
     try:
         source, comments_removed = _remove_should_comments(source)
         summary.comments_removed = comments_removed
-    except:
+    except Exception as e:
+        logger.warning(f"Failed to remove should-fail/pass comments: {e}")
+        # Leave source as-is if comment removal fails
         pass
     
     return source, summary
