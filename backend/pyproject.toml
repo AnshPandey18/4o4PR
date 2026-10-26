@@ -13,5 +13,5 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-norecursedirs = ["tests/fixtures", "examples", ".git", ".pytest_cache", "__pycache__", "venv", "runs"]
+norecursedirs = ["tests/fixtures", "examples", ".git", ".pytest_cache", "__pycache__", "venv", "runs", "repos"]
 addopts = "-v --tb=short"

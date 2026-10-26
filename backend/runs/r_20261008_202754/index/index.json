@@ -79,7 +79,7 @@
       ]
     }
   },
-  "content_hash": "a25ad457d51273e2935d8b9a1da9221edf253358d1ca63169ad0d3bea59de7b4",
+  "content_hash": "7bce426a91c41fab3e88f06138891969bfee38e446fe3ecf297183bec512271c",
   "files": {
     "src/__init__.py": {
       "docstring": "Sample project with intentional bugs for testing.",
@@ -88,7 +88,7 @@
       "lines": 1,
       "module": null,
       "parse_ok": true,
-      "sha1": "f9d49374a2f244616e35a423dbe7814a55e220aa"
+      "sha1": "2cd7e81a4efbcecc4b6f5ec638a3d97100c50223"
     },
     "src/calculator.py": {
       "docstring": "Calculator module with intentional bugs.",
@@ -97,7 +97,7 @@
       "lines": 99,
       "module": "calculator",
       "parse_ok": true,
-      "sha1": "e9dd0ff9b5f9de22acabca4242ae00ab0f70009f"
+      "sha1": "920c3d9f9af47e088e3e27507f5b7821ce731d9c"
     },
     "src/string_utils.py": {
       "docstring": "String utilities module with intentional bugs.",
@@ -106,7 +106,7 @@
       "lines": 70,
       "module": "string_utils",
       "parse_ok": true,
-      "sha1": "b2f56f4865d255c6abae2082c75689adf3180a30"
+      "sha1": "f04f181f630ed077a29f19362afc951abe0167f6"
     },
     "tests/__init__.py": {
       "docstring": "Test suite for sample bugs project.",
@@ -115,7 +115,7 @@
       "lines": 1,
       "module": null,
       "parse_ok": true,
-      "sha1": "811bb53e7a5c022e6820af486c45271c4aaa6d5e"
+      "sha1": "17b35bb6ac39abedf2615b7608a022a132d85522"
     },
     "tests/test_calculator.py": {
       "docstring": "Tests for calculator module.",
@@ -180,7 +180,7 @@
       "lines": 64,
       "module": null,
       "parse_ok": true,
-      "sha1": "3f93c085d9966133004335d9cc9605c92ca7e5b8"
+      "sha1": "c8a49c7f32aea3e2c2d7191508faf651afe20bcf"
     },
     "tests/test_string_utils.py": {
       "docstring": "Tests for string utilities module.",
@@ -237,15 +237,15 @@
       "lines": 43,
       "module": null,
       "parse_ok": true,
-      "sha1": "9119236fc5e63cbe6315b7bffafa66f5b54e5740"
+      "sha1": "227cbab9414e791d58e8e10e8a4bf5fae95d26ba"
     }
   },
-  "generated_at": "2026-10-01T16:49:17.786563Z",
+  "generated_at": "2026-10-08T14:57:54.386016Z",
   "import_roots": [
     "src"
   ],
   "parse_errors": [],
-  "run_id": "r_20261001_221917",
+  "run_id": "r_20261008_202754",
   "schema_version": "1.0",
   "symbols": {
     "src/calculator.py::add": {

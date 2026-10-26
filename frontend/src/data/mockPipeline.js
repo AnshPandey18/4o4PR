@@ -108,7 +108,7 @@ export const PIPELINE_STEPS = [
   {
     id: 'complete',
     name: 'Pipeline Completed',
-    description: 'Bug fixing pipeline has completed successfully. The PR is ready for review.',
+    description: 'The pipeline has finished. The final outcome is reported below.',
     logs: [
       '========================================================================',
       '                    4O4PR AUTO-REPAIR COMPLETED SUCCESSFULLY',
