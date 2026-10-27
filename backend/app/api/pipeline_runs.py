@@ -35,7 +35,7 @@ BACKEND_DIR = Path(__file__).parent.parent.parent.resolve()
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from orchestrator_db import OrchestratorDB, execute_onboarding_task
+from orchestrator import OrchestratorDB, execute_onboarding_task
 
 # Statuses that mean a pipeline run is still in flight
 ACTIVE_RUN_STATUSES = ("pending", "queued", "running")

@@ -16,8 +16,8 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-import orchestrator_db
-from orchestrator_db import OrchestratorDB, _elapsed_seconds, execute_onboarding_task
+import orchestrator
+from orchestrator import OrchestratorDB, _elapsed_seconds, execute_onboarding_task
 from app.models.pipeline_run import PipelineRun
 from app.models.repository import Repository
 from app.tools.github_client import GitHubClient, WorkspaceBusyError
@@ -102,7 +102,7 @@ def fake_pipeline(monkeypatch, tmp_path):
             args=command, returncode=0, stdout="pipeline finished", stderr=""
         )
 
-    monkeypatch.setattr(orchestrator_db.subprocess, "run", _run)
+    monkeypatch.setattr(orchestrator.subprocess, "run", _run)
     return calls
 
 
@@ -378,7 +378,7 @@ class TestPipelineExecution:
         assert call["env"]["ORCHESTRATOR_ROOT"]
         assert call["env"]["ORCHESTRATOR_RUN_ID"] == result["run_id"]
         assert call["env"]["ORCHESTRATOR_IMPORT_ROOTS"]
-        assert call["timeout"] == orchestrator_db.PIPELINE_TIMEOUT_SECONDS
+        assert call["timeout"] == orchestrator.PIPELINE_TIMEOUT_SECONDS
 
     def test_pipeline_persists_the_real_results(self, orchestrator, db_session, tmp_path, fake_clone, fake_pipeline):
         result, run = self._registered_run(orchestrator, db_session, tmp_path)
@@ -410,7 +410,7 @@ class TestPipelineExecution:
                 stdout="", stderr="ERROR: the detector crashed\n",
             )
 
-        monkeypatch.setattr(orchestrator_db.subprocess, "run", _fail)
+        monkeypatch.setattr(orchestrator.subprocess, "run", _fail)
 
         orchestrator.execute_onboarding(
             repository_id=result["repository_id"],
@@ -430,7 +430,7 @@ class TestPipelineExecution:
         def _timeout(command, **kwargs):
             raise subprocess.TimeoutExpired(cmd=command, timeout=kwargs.get("timeout", 1))
 
-        monkeypatch.setattr(orchestrator_db.subprocess, "run", _timeout)
+        monkeypatch.setattr(orchestrator.subprocess, "run", _timeout)
 
         orchestrator.execute_onboarding(
             repository_id=result["repository_id"],
@@ -452,7 +452,7 @@ class TestPipelineExecution:
             raise AssertionError("the pipeline must not start without a clone")
 
         monkeypatch.setattr(GitHubClient, "clone_repository", _fail)
-        monkeypatch.setattr(orchestrator_db.subprocess, "run", _fail)
+        monkeypatch.setattr(orchestrator.subprocess, "run", _fail)
 
         outcome = orchestrator.execute_onboarding(
             repository_id=result["repository_id"],
@@ -549,7 +549,7 @@ class TestBackgroundWorker:
     """The background task must always leave a truthful run record behind."""
 
     def test_worker_marks_the_run_failed_on_an_unexpected_error(self, db_session, monkeypatch):
-        monkeypatch.setattr(orchestrator_db, "SessionLocal", lambda: db_session)
+        monkeypatch.setattr(orchestrator, "SessionLocal", lambda: db_session)
 
         def _boom(self, **kwargs):
             raise RuntimeError("boom ghp_abcdefghijklmnopqrstuvwxyz0123456789")
@@ -575,14 +575,14 @@ class TestCLIInterface:
         orchestrator = MockOrchestrator(
             {"status": "COMPLETED", "repository_id": 7, "run_id": "run_123"}
         )
-        monkeypatch.setattr(orchestrator_db, "OrchestratorDB", lambda **kw: orchestrator)
+        monkeypatch.setattr(orchestrator, "OrchestratorDB", lambda **kw: orchestrator_obj)
         monkeypatch.setattr(
             sys, "argv",
-            ["orchestrator_db.py", "--repository-onboarding", "--user-id", "1",
+            ["orchestrator.py", "--repository-onboarding", "--user-id", "1",
              "--repo-url", REPO_URL, "--branch", "main"],
         )
 
-        exit_code = orchestrator_db.main()
+        exit_code = orchestrator.main()
 
         assert exit_code == 0
         assert orchestrator.calls[0]["repo_url"] == REPO_URL
@@ -592,24 +592,24 @@ class TestCLIInterface:
         orchestrator = MockOrchestrator(
             {"status": "FAILED", "error": "Clone timeout"}
         )
-        monkeypatch.setattr(orchestrator_db, "OrchestratorDB", lambda **kw: orchestrator)
+        monkeypatch.setattr(orchestrator, "OrchestratorDB", lambda **kw: orchestrator_obj)
         monkeypatch.setattr(
             sys, "argv",
-            ["orchestrator_db.py", "--repository-onboarding", "--user-id", "1",
+            ["orchestrator.py", "--repository-onboarding", "--user-id", "1",
              "--repo-url", REPO_URL],
         )
 
-        exit_code = orchestrator_db.main()
+        exit_code = orchestrator.main()
 
         assert exit_code == 1
 
     def test_cli_requires_a_user_id(self, monkeypatch):
         monkeypatch.setattr(
             sys, "argv",
-            ["orchestrator_db.py", "--repository-onboarding", "--repo-url", REPO_URL],
+            ["orchestrator.py", "--repository-onboarding", "--repo-url", REPO_URL],
         )
 
-        exit_code = orchestrator_db.main()
+        exit_code = orchestrator.main()
 
         assert exit_code == 1
 

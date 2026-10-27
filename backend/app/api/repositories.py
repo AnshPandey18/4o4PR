@@ -31,14 +31,14 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/repositories", tags=["repositories"])
 
-# Path to orchestrator_db.py
+# Path to orchestrator.py
 BACKEND_DIR = Path(__file__).parent.parent.parent.resolve()
-ORCHESTRATOR_DB_PATH = BACKEND_DIR / "orchestrator_db.py"
+ORCHESTRATOR_PATH = BACKEND_DIR / "orchestrator.py"
 
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from orchestrator_db import OrchestratorDB, execute_onboarding_task
+from orchestrator import OrchestratorDB, execute_onboarding_task
 
 
 # Statuses that mean a pipeline run is still in flight

@@ -55,7 +55,8 @@ services:
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://admin:admin123@postgres:5432/4o4_db
+      ENCRYPTION_KEY: 9-Cy8vnWC7nMYz6axnsYR9SRiTzFqUCn4Midyxw6G08=
+      DATABASE_URL: postgresql+psycopg://admin:admin123@postgres:5432/4o4_db
       SECRET_KEY: AmQX6_sk74bBJ_JE7rAbYiAIucBMEmbHM7ioqMitp-E
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 60
@@ -65,6 +66,9 @@ services:
       REDIS_PORT: 6379
       REDIS_DB: 4
       REDIS_DECODE_RESPONSES: "True"
+    volumes:
+      - ./backend/repos:/app/repos
+      - ./backend/runs:/app/runs
     networks:
       - 4o4_network
 

@@ -22,6 +22,10 @@ from analysis import (
     PatchGenerator,
     RootCauseAnalysisAgent,
 )
+from app.tools.console import configure_console
+
+
+configure_console()
 
 
 def load_local_env() -> None:
