@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import './HistorySidebar.css';
 
 /* ── history data (mirrors Report mock, grouped chronologically) ── */
@@ -190,6 +191,7 @@ function RunRow({ run, index, isOpen, onClick }) {
 /* ── MAIN COMPONENT ── */
 export default function HistorySidebar() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [open,     setOpen]     = useState(false);
   const [openRun,  setOpenRun]  = useState(null);
   const [filter,   setFilter]   = useState('all');
@@ -226,6 +228,11 @@ export default function HistorySidebar() {
 
   const groups = groupByDate(filtered);
   const successCount = HISTORY.filter(r => r.status === 'success').length;
+
+  // Only render if user is logged in
+  if (!user) {
+    return null;
+  }
 
   return (
     <>

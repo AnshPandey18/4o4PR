@@ -771,3 +771,67 @@ kbd {
     transform: rotate(360deg);
   }
 }
+
+/* ── CONFIGURATION TABS (Branch / PR / Commit Hash) ── */
+.tr2-config-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding: 6px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+}
+
+.tr2-config-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
+}
+
+.tr2-config-tab svg {
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.tr2-config-tab:hover {
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.75);
+}
+
+.tr2-config-tab:hover svg {
+  opacity: 0.8;
+}
+
+.tr2-config-tab-active {
+  background: var(--tr2-teal-dim);
+  border-color: var(--tr2-teal-border);
+  color: var(--tr2-teal);
+}
+
+.tr2-config-tab-active svg {
+  opacity: 1;
+}
+
+/* Add hint styling */
+.tr2-hint {
+  display: block;
+  margin-top: 6px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  line-height: 1.4;
+}

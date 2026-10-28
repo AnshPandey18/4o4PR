@@ -11,6 +11,7 @@ from pathlib import Path
 from ..database import get_db
 from ..models.user import User
 from ..models.repository import Repository
+from ..models.user_credentials import UserCredentials
 from ..models.pipeline_run import PipelineRun
 from ..schemas.pipeline_run import (
     PipelineRunCreate,
@@ -76,23 +77,13 @@ def create_pipeline_run(
             detail=f"Repository must be cloned first. Current status: {repo.clone_status}"
         )
     
-    # Generate run_id
-    run_id = OrchestratorDB.generate_run_id()
-    
-    # Determine output directory
-    output_dir = run_data.output_dir or str(BACKEND_DIR / "runs" / run_id)
-    
-    # Create pipeline run
+    # Create pipeline run with new schema
     new_run = PipelineRun(
-        run_id=run_id,
         repository_id=repo.id,
-        user_id=current_user.id,
-        orchestrator_root=repo.clone_path,
-        import_roots=run_data.import_roots or "src",
-        output_dir=output_dir,
-        config_file=run_data.config_file,
-        verbose=run_data.verbose,
         status="pending",
+        input_mode=run_data.input_mode or "branch",
+        input_ref=run_data.input_ref or repo.default_branch,
+        commit_sha=run_data.commit_sha,
     )
     
     db.add(new_run)
@@ -121,7 +112,10 @@ def list_pipeline_runs(
     Optionally filter by repository_id and/or status.
     Supports pagination via skip/limit.
     """
-    query = db.query(PipelineRun).filter(PipelineRun.user_id == current_user.id)
+    # Query through repository to ensure ownership
+    query = db.query(PipelineRun).join(Repository).filter(
+        Repository.owner_id == current_user.id
+    )
     
     if repository_id:
         # Verify repository belongs to user
@@ -160,14 +154,14 @@ def list_pipeline_runs(
 
 @router.get("/{run_id}", response_model=PipelineRunResponse)
 def get_pipeline_run(
-    run_id: str,
+    run_id: int,  # Changed from str to int (using database ID now)
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Get details of a specific pipeline run."""
-    run = db.query(PipelineRun).filter(
-        PipelineRun.run_id == run_id,
-        PipelineRun.user_id == current_user.id
+    run = db.query(PipelineRun).join(Repository).filter(
+        PipelineRun.id == run_id,
+        Repository.owner_id == current_user.id
     ).first()
     
     if not run:
@@ -183,7 +177,7 @@ def get_pipeline_run(
 
 @router.patch("/{run_id}", response_model=PipelineRunResponse)
 def update_pipeline_run(
-    run_id: str,
+    run_id: int,  # Changed from str to int
     updates: PipelineRunUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
@@ -193,9 +187,9 @@ def update_pipeline_run(
     
     This endpoint is typically called by the orchestrator during/after execution.
     """
-    run = db.query(PipelineRun).filter(
-        PipelineRun.run_id == run_id,
-        PipelineRun.user_id == current_user.id
+    run = db.query(PipelineRun).join(Repository).filter(
+        PipelineRun.id == run_id,
+        Repository.owner_id == current_user.id
     ).first()
     
     if not run:
@@ -212,10 +206,8 @@ def update_pipeline_run(
         if updates.status == "running" and not run.started_at:
             run.started_at = datetime.now(timezone.utc)
         elif updates.status in ("completed", "failed", "cancelled") and not run.completed_at:
-            completed_at = datetime.now(timezone.utc)
-            run.completed_at = completed_at
-            if run.started_at:
-                run.duration_seconds = int((completed_at - run.started_at).total_seconds())
+            run.completed_at = datetime.now(timezone.utc)
+            # Note: duration_seconds no longer exists, calculate on-the-fly if needed
     
     if updates.bugs_detected is not None:
         run.bugs_detected = updates.bugs_detected
@@ -225,8 +217,7 @@ def update_pipeline_run(
         run.patches_generated = updates.patches_generated
     if updates.error_message is not None:
         run.error_message = updates.error_message
-    if updates.error_traceback is not None:
-        run.error_traceback = updates.error_traceback
+    # Note: error_traceback no longer exists in schema
     
     db.commit()
     db.refresh(run)
@@ -238,14 +229,14 @@ def update_pipeline_run(
 
 @router.delete("/{run_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_pipeline_run(
-    run_id: str,
+    run_id: int,  # Changed from str to int
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Delete a pipeline run record."""
-    run = db.query(PipelineRun).filter(
-        PipelineRun.run_id == run_id,
-        PipelineRun.user_id == current_user.id
+    run = db.query(PipelineRun).join(Repository).filter(
+        PipelineRun.id == run_id,
+        Repository.owner_id == current_user.id
     ).first()
     
     if not run:
@@ -283,26 +274,177 @@ def trigger_pipeline_run(
 
     This is the main endpoint for starting the orchestrator from the UI.
 
+    Supports three modes:
+    - branch: Run on a specific branch (repository_id + branch name required)
+    - pr: Run on a pull request (PR URL required, will fetch repo if needed)
+    - commit: Run on a specific commit (repository_id + commit SHA required)
+
     Steps:
-    1. Verify the repository exists and belongs to the user
-    2. Reject the request when a run is already active for the repository
-    3. Create the PipelineRun record
-    4. Start the orchestrator in the background (clone if needed, then execute)
-    5. Return the run_id immediately
+    1. Parse and validate input based on mode
+    2. Fetch/verify repository (create if PR mode)
+    3. Validate commit SHA or PR (if applicable)
+    4. Create the PipelineRun record
+    5. Start the orchestrator in the background
+    6. Return the run_id immediately
 
     The real execution state is observed through GET /api/pipeline-runs/{run_id}.
     """
-    # Verify repository exists and belongs to user
-    repo = db.query(Repository).filter(
-        Repository.id == trigger_req.repository_id,
-        Repository.owner_id == current_user.id
+    repo = None
+    repo_url = None
+    branch = None
+    commit_sha = None
+    
+    # Get user's PAT from credentials
+    user_creds = db.query(UserCredentials).filter(
+        UserCredentials.user_id == current_user.id
     ).first()
     
-    if not repo:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Repository not found"
-        )
+    pat = None
+    if user_creds:
+        try:
+            pat = GitHubClient().decrypt_pat(user_creds.encrypted_token)
+        except ValueError:
+            logger.warning("Stored access token could not be decrypted for user %s", current_user.id)
+    
+    github_client = GitHubClient(personal_access_token=pat)
+    
+    # ======================================================================
+    # MODE 1: Branch Mode
+    # ======================================================================
+    if trigger_req.input_mode == "branch":
+        if not trigger_req.repository_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="repository_id is required for branch mode"
+            )
+        
+        # Verify repository exists and belongs to user
+        repo = db.query(Repository).filter(
+            Repository.id == trigger_req.repository_id,
+            Repository.owner_id == current_user.id
+        ).first()
+        
+        if not repo:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Repository not found"
+            )
+        
+        repo_url = f"https://github.com/{repo.full_name}"
+        branch = trigger_req.input_ref or repo.default_branch or "main"
+    
+    # ======================================================================
+    # MODE 2: Pull Request Mode
+    # ======================================================================
+    elif trigger_req.input_mode == "pr":
+        # Parse PR URL: https://github.com/owner/repo/pull/123
+        pr_url = trigger_req.input_ref
+        
+        # Extract owner/repo from PR URL
+        import re
+        pr_pattern = r"github\.com/([^/]+)/([^/]+)/pull/(\d+)"
+        match = re.search(pr_pattern, pr_url)
+        
+        if not match:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid PR URL format. Expected: https://github.com/owner/repo/pull/123"
+            )
+        
+        owner, repo_name, pr_number = match.groups()
+        full_name = f"{owner}/{repo_name}"
+        repo_url = f"https://github.com/{full_name}"
+        
+        # Check if repository already exists
+        repo = db.query(Repository).filter(
+            Repository.owner_id == current_user.id,
+            Repository.full_name == full_name
+        ).first()
+        
+        # Fetch PR information from GitHub to get the commit SHA
+        try:
+            github = github_client.github
+            if not github:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="GitHub authentication required to fetch PR information"
+                )
+            
+            gh_repo = github.get_repo(full_name)
+            pr = gh_repo.get_pull(int(pr_number))
+            
+            commit_sha = pr.head.sha  # Full 40-character SHA
+            branch = pr.head.ref  # Branch name from PR head
+            
+            # Create repository if it doesn't exist
+            if not repo:
+                repo = Repository(
+                    full_name=full_name,
+                    owner_id=current_user.id,
+                    description=f"Added from PR #{pr_number}",
+                    github_id=gh_repo.id,
+                    default_branch=gh_repo.default_branch,
+                    is_private=gh_repo.private,
+                    clone_status="not_cloned"
+                )
+                db.add(repo)
+                db.commit()
+                db.refresh(repo)
+                logger.info(f"Created repository {full_name} from PR #{pr_number}")
+        
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to fetch PR information: {str(e)}"
+            )
+    
+    # ======================================================================
+    # MODE 3: Commit Hash Mode
+    # ======================================================================
+    elif trigger_req.input_mode == "commit":
+        if not trigger_req.repository_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="repository_id is required for commit mode"
+            )
+        
+        # Verify repository exists and belongs to user
+        repo = db.query(Repository).filter(
+            Repository.id == trigger_req.repository_id,
+            Repository.owner_id == current_user.id
+        ).first()
+        
+        if not repo:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Repository not found"
+            )
+        
+        repo_url = f"https://github.com/{repo.full_name}"
+        branch = repo.default_branch or "main"
+        
+        # Validate commit SHA with GitHub API and expand short SHA
+        try:
+            github = github_client.github
+            if not github:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="GitHub authentication required to validate commit SHA"
+                )
+            
+            gh_repo = github.get_repo(repo.full_name)
+            commit = gh_repo.get_commit(trigger_req.input_ref)  # This validates and expands short SHA
+            commit_sha = commit.sha  # Full 40-character SHA
+            
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid commit SHA: {str(e)}"
+            )
+    
+    # ======================================================================
+    # Common: Check for active runs and create pipeline run
+    # ======================================================================
     
     # Prevent conflicting duplicate submissions
     existing_run = db.query(PipelineRun).filter(
@@ -313,66 +455,50 @@ def trigger_pipeline_run(
     if existing_run:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Pipeline already running for this repository. Run ID: {existing_run.run_id}"
+            detail=f"Pipeline already running for this repository. Run ID: {existing_run.id}"
         )
-    
-    # Generate a unique run_id
-    run_id = OrchestratorDB.generate_run_id()
-    branch = repo.branch or "main"
-    output_dir = str(BACKEND_DIR / "runs" / run_id)
     
     # Create pipeline run record
     new_run = PipelineRun(
-        run_id=run_id,
         repository_id=repo.id,
-        user_id=current_user.id,
-        orchestrator_root=repo.clone_path or "",
-        import_roots=trigger_req.import_roots or "src",
-        output_dir=output_dir,
-        verbose=trigger_req.verbose,
         status="queued",
+        input_mode=trigger_req.input_mode,
+        input_ref=trigger_req.input_ref,
+        commit_sha=commit_sha,  # Will be None for branch mode (determined during clone)
     )
     
     db.add(new_run)
     db.commit()
     db.refresh(new_run)
     
-    # Recover the stored token for private repositories. Only the encrypted
-    # form is persisted; it is decrypted here and never written to the logs.
-    pat = None
-    if repo.encrypted_pat:
-        try:
-            pat = GitHubClient().decrypt_pat(repo.encrypted_pat)
-        except ValueError:
-            logger.warning("Stored access token could not be decrypted for repository %s", repo.id)
-    
-    # Start the orchestrator in the background so the event loop is never blocked
+    # Start the orchestrator in the background
     background_tasks.add_task(
         execute_onboarding_task,
         current_user.id,
         repo.id,
-        run_id,
-        repo.url,
+        new_run.id,  # Using database ID
+        repo_url,
         branch,
         pat,
     )
     
     logger.info(
-        "Pipeline run queued: run_id=%s repository_id=%s", run_id, repo.id
+        "Pipeline run queued: id=%s repository_id=%s mode=%s ref=%s",
+        new_run.id, repo.id, trigger_req.input_mode, trigger_req.input_ref
     )
     
     return {
-        "run_id": run_id,
+        "run_id": str(new_run.id),
         "repository_id": repo.id,
         "status": "queued",
-        "message": f"Pipeline run queued successfully. Run ID: {run_id}",
+        "message": f"Pipeline run queued successfully. Run ID: {new_run.id}",
         "orchestrator_root": repo.clone_path or ""
     }
 
 
 @router.post("/{run_id}/cancel", response_model=PipelineRunCancelResponse)
 def cancel_pipeline_run(
-    run_id: str,
+    run_id: int,  # Changed from str to int
     cancel_req: PipelineRunCancelRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
@@ -382,9 +508,9 @@ def cancel_pipeline_run(
     
     This will attempt to gracefully stop the orchestrator process.
     """
-    run = db.query(PipelineRun).filter(
-        PipelineRun.run_id == run_id,
-        PipelineRun.user_id == current_user.id
+    run = db.query(PipelineRun).join(Repository).filter(
+        PipelineRun.id == run_id,
+        Repository.owner_id == current_user.id
     ).first()
     
     if not run:
@@ -402,10 +528,8 @@ def cancel_pipeline_run(
     
     # Update status
     run.status = "cancelled"
-    completed_at = datetime.now(timezone.utc)
-    run.completed_at = completed_at
-    if run.started_at:
-        run.duration_seconds = int((completed_at - run.started_at).total_seconds())
+    run.completed_at = datetime.now(timezone.utc)
+    # Note: duration_seconds no longer exists, calculate on-the-fly if needed
     
     if cancel_req.reason:
         run.error_message = f"Cancelled by user: {cancel_req.reason}"
@@ -418,7 +542,7 @@ def cancel_pipeline_run(
     print(f"🛑 Pipeline run cancelled: {run_id}")
     
     return {
-        "run_id": run_id,
+        "run_id": str(run_id),
         "status": "cancelled",
         "message": "Pipeline run cancelled successfully"
     }
@@ -439,7 +563,9 @@ def get_pipeline_run_stats(
     
     Optionally filter by repository_id.
     """
-    query = db.query(PipelineRun).filter(PipelineRun.user_id == current_user.id)
+    query = db.query(PipelineRun).join(Repository).filter(
+        Repository.owner_id == current_user.id
+    )
     
     if repository_id:
         # Verify repository belongs to user
@@ -475,10 +601,11 @@ def get_pipeline_run_stats(
     else:
         avg_success_rate = 0.0
     
-    # Calculate average duration
-    finished_with_duration = [r for r in all_runs if r.is_finished and r.duration_seconds]
-    if finished_with_duration:
-        avg_duration_seconds = sum(r.duration_seconds for r in finished_with_duration) / len(finished_with_duration)
+    # Calculate average duration (on-the-fly since duration_seconds no longer exists)
+    finished_with_times = [r for r in all_runs if r.is_finished and r.started_at and r.completed_at]
+    if finished_with_times:
+        durations = [(r.completed_at - r.started_at).total_seconds() for r in finished_with_times]
+        avg_duration_seconds = sum(durations) / len(durations)
     else:
         avg_duration_seconds = None
     

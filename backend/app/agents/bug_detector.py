@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-from app.models.schemas import BugReport, BugDetectionResult
+from app.schemas.bug_detection import BugReport, BugDetectionResult
 
 
 class BugDetectorError(Exception):

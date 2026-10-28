@@ -1,0 +1,389 @@
+/* ═══════════════════════════════════════════════════════════
+   REPOSITORIES PAGE
+   ═══════════════════════════════════════════════════════════ */
+
+.repos-content {
+  animation: tr2-rise 0.6s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+/* ── ADD BUTTON ── */
+.repos-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--tr2-teal);
+  color: #000;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  margin-left: auto;
+  transition: background .2s, transform .2s;
+  box-shadow: 0 4px 12px rgba(32,194,164,0.25);
+}
+
+.repos-add-btn:hover {
+  background: #1ab094;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(32,194,164,0.35);
+}
+
+.repos-add-btn:active {
+  transform: scale(0.97);
+}
+
+/* ── FORM CONTAINER ── */
+.repos-form-container {
+  background: rgba(32,194,164,0.04);
+  border: 1px solid var(--tr2-teal-border);
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+  animation: tr2-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.repos-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.repos-form-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tr2-teal);
+  margin: 0 0 8px 0;
+}
+
+.repos-url-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.repos-url-row .tr2-input {
+  flex: 1;
+}
+
+.repos-fetch-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 12px 20px;
+}
+
+/* ── GITHUB INFO BOX ── */
+.repos-info-box {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: tr2-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.repos-info-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.repos-info-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.35);
+  min-width: 110px;
+}
+
+.repos-info-value {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--tr2-teal);
+  background: rgba(32,194,164,0.08);
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--tr2-teal-border);
+}
+
+/* ── BADGES ── */
+.repos-badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.repos-badge-public {
+  background: rgba(32,194,164,0.1);
+  border-color: rgba(32,194,164,0.3);
+  color: var(--tr2-teal);
+}
+
+.repos-badge-private {
+  background: rgba(255,183,100,0.1);
+  border-color: rgba(255,183,100,0.3);
+  color: #ffb764;
+}
+
+/* ── FORM ACTIONS ── */
+.repos-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+/* ── LOADING STATE ── */
+.repos-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  color: rgba(255,255,255,0.5);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+}
+
+/* ── EMPTY STATE ── */
+.repos-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 64px 24px;
+  color: rgba(255,255,255,0.4);
+}
+
+.repos-empty svg {
+  color: rgba(32,194,164,0.3);
+  margin-bottom: 20px;
+}
+
+.repos-empty h3 {
+  font-family: 'Source Serif 4', 'Georgia', serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.7);
+  margin: 0 0 12px 0;
+}
+
+.repos-empty p {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.4);
+  max-width: 400px;
+  margin: 0;
+}
+
+/* ── TABLE ── */
+.repos-table-container {
+  margin-top: 24px;
+  overflow-x: auto;
+}
+
+.repos-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.repos-table thead {
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.repos-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.02);
+}
+
+.repos-table tbody tr {
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: background .2s;
+}
+
+.repos-table tbody tr:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.repos-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.repos-table td {
+  padding: 16px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.75);
+  vertical-align: middle;
+}
+
+.repos-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tr2-teal);
+  background: rgba(32,194,164,0.06);
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.repos-desc-cell {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(255,255,255,0.55);
+}
+
+.repos-branch {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.04);
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid rgba(255,255,255,0.08);
+  white-space: nowrap;
+}
+
+.repos-empty-text {
+  color: rgba(255,255,255,0.25);
+  font-style: italic;
+}
+
+/* ── STATUS ── */
+.repos-status {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.repos-status-cloned {
+  color: var(--tr2-teal);
+}
+
+.repos-status-cloning {
+  color: #60a5fa;
+}
+
+.repos-status-failed {
+  color: #e6714f;
+}
+
+.repos-status-not_cloned {
+  color: rgba(255,255,255,0.3);
+}
+
+/* ── ACTION BUTTONS ── */
+.repos-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.repos-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .2s, border-color .2s, transform .2s;
+  padding: 0;
+}
+
+.repos-action-btn:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.2);
+  transform: translateY(-1px);
+}
+
+.repos-action-btn:active {
+  transform: scale(0.95);
+}
+
+.repos-edit-btn {
+  color: rgba(255,255,255,0.6);
+}
+
+.repos-edit-btn:hover {
+  color: var(--tr2-teal);
+  border-color: var(--tr2-teal-border);
+  background: rgba(32,194,164,0.08);
+}
+
+.repos-delete-btn {
+  color: rgba(255,255,255,0.5);
+}
+
+.repos-delete-btn:hover {
+  color: #e6714f;
+  border-color: rgba(230,113,79,0.3);
+  background: rgba(230,113,79,0.08);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .repos-table-container {
+    overflow-x: scroll;
+  }
+  
+  .repos-table {
+    min-width: 800px;
+  }
+  
+  .repos-url-row {
+    flex-direction: column;
+  }
+  
+  .repos-fetch-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .repos-add-btn {
+    font-size: 10px;
+    padding: 7px 14px;
+  }
+  
+  .repos-form-container {
+    padding: 16px;
+  }
+  
+  .repos-table th,
+  .repos-table td {
+    padding: 12px 8px;
+    font-size: 11px;
+  }
+}

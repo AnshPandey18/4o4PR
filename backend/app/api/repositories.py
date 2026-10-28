@@ -10,6 +10,7 @@ from pathlib import Path
 from ..database import get_db
 from ..models.user import User
 from ..models.repository import Repository
+from ..models.user_credentials import UserCredentials
 from ..models.pipeline_run import PipelineRun
 from ..schemas.repository import (
     RepositoryCreate,
@@ -107,7 +108,7 @@ def onboard_repository(
         repo_identifier = GitHubClient._parse_repo_identifier(repo_data.url)
         existing_repo = db.query(Repository).filter(
             Repository.owner_id == current_user.id,
-            Repository.name == repo_identifier
+            Repository.full_name == repo_identifier
         ).first()
 
         if existing_repo:
@@ -121,7 +122,7 @@ def onboard_repository(
                     status_code=status.HTTP_409_CONFLICT,
                     detail=(
                         "A pipeline run is already in progress for this repository "
-                        f"(Run ID: {active_run.run_id})"
+                        f"(Run ID: {active_run.id})"
                     )
                 )
 
@@ -195,6 +196,86 @@ def onboard_repository(
 # Repository CRUD Endpoints
 # ============================================================================
 
+@router.post("/fetch-info", status_code=status.HTTP_200_OK)
+def fetch_repository_info(
+    repo_url: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Fetch repository information from GitHub using stored PAT.
+    
+    This endpoint is used by the frontend "Fetch Info" button to get
+    repository metadata before adding it to the database.
+    
+    - Uses stored PAT from user_credentials if available
+    - Returns repository metadata (name, description, branch, visibility)
+    - Does not create any database records
+    """
+    try:
+        # Get stored PAT from user credentials
+        user_creds = db.query(UserCredentials).filter(
+            UserCredentials.user_id == current_user.id
+        ).first()
+        
+        pat = None
+        if user_creds and user_creds.is_active:
+            try:
+                pat = GitHubClient().decrypt_pat(user_creds.encrypted_token)
+            except Exception as e:
+                logger.warning(f"Failed to decrypt stored PAT: {e}")
+        
+        # Validate URL format
+        is_valid, error_msg = GitHubClient.validate_repo_url(repo_url)
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid repository URL: {error_msg}"
+            )
+        
+        # Initialize GitHub client with PAT (or None for public repos)
+        github_client = GitHubClient(personal_access_token=pat)
+        
+        # Fetch repository info from GitHub
+        try:
+            repo_info = github_client.get_repo_info(repo_url)
+            
+            return {
+                "success": True,
+                "full_name": repo_info.get("full_name"),
+                "description": repo_info.get("description", ""),
+                "github_id": repo_info.get("github_id"),
+                "default_branch": repo_info.get("default_branch", "main"),
+                "is_private": repo_info.get("is_private", False),
+                "message": "Repository information fetched successfully"
+            }
+        except ValueError as e:
+            error_msg = str(e)
+            if "404" in error_msg or "not found" in error_msg.lower():
+                if pat:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail="Repository not found. Make sure the URL is correct and your PAT has access to this repository."
+                    )
+                else:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail="Repository not found. This might be a private repository. Please add your PAT token in the Dashboard."
+                    )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error_msg
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Failed to fetch repository info")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch repository information: {str(e)}"
+        )
+
+
 @router.post("/", response_model=RepositoryResponse, status_code=status.HTTP_201_CREATED)
 def create_repository(
     repo_data: RepositoryCreate,
@@ -205,13 +286,27 @@ def create_repository(
     Add a new GitHub repository to track.
     
     - Validates GitHub URL
-    - Fetches repository metadata from GitHub API (if PAT provided)
-    - Encrypts and stores PAT if provided
+    - Fetches repository metadata from GitHub API using stored PAT or provided PAT
+    - Stores PAT in user_credentials table if provided
     - Creates repository record in database
     """
     try:
+        # Get stored PAT from user credentials
+        user_creds = db.query(UserCredentials).filter(
+            UserCredentials.user_id == current_user.id
+        ).first()
+        
+        stored_pat = None
+        if user_creds and user_creds.is_active:
+            try:
+                stored_pat = GitHubClient().decrypt_pat(user_creds.encrypted_token)
+            except Exception as e:
+                logger.warning(f"Failed to decrypt stored PAT: {e}")
+        
+        # Use provided PAT if given, otherwise use stored PAT
+        pat = repo_data.personal_access_token or stored_pat
+        
         # Initialize GitHub client
-        pat = repo_data.personal_access_token
         github_client = GitHubClient(personal_access_token=pat)
         
         # Validate URL format
@@ -222,9 +317,9 @@ def create_repository(
                 detail=f"Invalid repository URL: {error_msg}"
             )
         
-        # Validate PAT format if provided
-        if pat:
-            is_valid, error_msg = GitHubClient.validate_pat(pat)
+        # Validate PAT format if provided in request
+        if repo_data.personal_access_token:
+            is_valid, error_msg = GitHubClient.validate_pat(repo_data.personal_access_token)
             if not is_valid:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -237,16 +332,29 @@ def create_repository(
             try:
                 repo_info = github_client.get_repo_info(repo_data.url)
             except ValueError as e:
+                error_msg = str(e)
+                if "404" in error_msg or "not found" in error_msg.lower():
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail="Repository not found. Make sure the URL is correct and your PAT has access to this repository."
+                    )
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=str(e)
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=error_msg
                 )
+        else:
+            # Try to fetch public repo info without token
+            try:
+                repo_info = github_client.get_repo_info(repo_data.url)
+            except ValueError:
+                # If it fails, it might be a private repo - continue without info
+                logger.info(f"Could not fetch repo info for {repo_data.url} without PAT")
         
         # Check if repository already exists for this user
         repo_identifier = GitHubClient._parse_repo_identifier(repo_data.url)
         existing_repo = db.query(Repository).filter(
             Repository.owner_id == current_user.id,
-            Repository.name == repo_identifier
+            Repository.full_name == repo_identifier
         ).first()
         
         if existing_repo:
@@ -255,42 +363,56 @@ def create_repository(
                 detail=f"Repository {repo_identifier} already exists"
             )
         
-        # Create repository record
+        # Create repository record with minimal fields
         new_repo = Repository(
-            name=repo_identifier,
-            url=repo_data.url,
-            branch=repo_data.branch or "main",
+            full_name=repo_info.get("full_name") if repo_info else repo_identifier,
             owner_id=current_user.id,
-            description=repo_data.description,
+            description=repo_data.description if repo_data.description else (repo_info.get("description") if repo_info else ""),
             clone_status="not_cloned",
         )
         
         # Add GitHub metadata if available
         if repo_info:
             new_repo.github_id = repo_info.get("github_id")
-            new_repo.full_name = repo_info.get("full_name")
-            new_repo.owner_login = repo_info.get("owner_login")
-            new_repo.repo_name = repo_info.get("repo_name")
-            new_repo.default_branch = repo_info.get("default_branch")
-            new_repo.is_private = repo_info.get("is_private")
-            new_repo.stars_count = repo_info.get("stars_count")
-            new_repo.language = repo_info.get("language")
-            new_repo.description = new_repo.description or repo_info.get("description")
+            new_repo.default_branch = repo_info.get("default_branch", "main")
+            new_repo.is_private = repo_info.get("is_private", False)
+        else:
+            new_repo.default_branch = repo_data.branch or "main"
+            new_repo.is_private = False  # Assume public if we couldn't fetch info
         
-        # Encrypt and store PAT if provided
-        if pat:
-            new_repo.encrypted_pat = github_client.encrypt_pat(pat)
+        # Store PAT in user_credentials table if provided in request
+        if repo_data.personal_access_token:
+            encrypted_token = github_client.encrypt_pat(repo_data.personal_access_token)
+            token_last4 = repo_data.personal_access_token[-4:] if len(repo_data.personal_access_token) >= 4 else None
+            
+            if user_creds:
+                # Update existing credentials
+                user_creds.encrypted_token = encrypted_token
+                user_creds.token_last4 = token_last4
+                logger.info(f"Updated PAT for user {current_user.id}")
+            else:
+                # Create new credentials
+                user_creds = UserCredentials(
+                    user_id=current_user.id,
+                    encrypted_token=encrypted_token,
+                    token_last4=token_last4,
+                    scopes="repo"  # Default scope
+                )
+                db.add(user_creds)
+                logger.info(f"Created new PAT credentials for user {current_user.id}")
         
         db.add(new_repo)
         db.commit()
         db.refresh(new_repo)
         
+        logger.info(f"Created repository {new_repo.full_name} for user {current_user.id}")
         return new_repo
         
     except HTTPException:
         raise
     except Exception as e:
         db.rollback()
+        logger.exception("Failed to create repository")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create repository: {str(e)}"
@@ -360,13 +482,12 @@ def update_repository(
             detail="Repository not found"
         )
     
-    # Update fields
-    if updates.branch is not None:
-        repo.branch = updates.branch
+    # Update fields that still exist in new schema
     if updates.description is not None:
         repo.description = updates.description
     if updates.is_active is not None:
         repo.is_active = updates.is_active
+    # Note: 'branch' field no longer exists, use default_branch from GitHub
     
     db.commit()
     db.refresh(repo)
@@ -398,9 +519,17 @@ def delete_repository(
         )
     
     # Delete clone if requested
-    if delete_clone and repo.clone_path and repo.encrypted_pat:
+    if delete_clone and repo.clone_path:
         try:
-            pat = GitHubClient().decrypt_pat(repo.encrypted_pat)
+            # Get user's PAT from credentials
+            user_creds = db.query(UserCredentials).filter(
+                UserCredentials.user_id == current_user.id
+            ).first()
+            
+            pat = None
+            if user_creds:
+                pat = GitHubClient().decrypt_pat(user_creds.encrypted_token)
+            
             github_client = GitHubClient(personal_access_token=pat)
             github_client.delete_clone(
                 user_id=current_user.id,
@@ -454,11 +583,15 @@ def clone_repository(
             detail="Repository already cloned. Use force=true to reclone."
         )
     
-    # Decrypt PAT if available
+    # Get user's PAT from credentials
+    user_creds = db.query(UserCredentials).filter(
+        UserCredentials.user_id == current_user.id
+    ).first()
+    
     pat = None
-    if repo.encrypted_pat:
+    if user_creds:
         try:
-            pat = GitHubClient().decrypt_pat(repo.encrypted_pat)
+            pat = GitHubClient().decrypt_pat(user_creds.encrypted_token)
         except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -468,15 +601,18 @@ def clone_repository(
     # Initialize GitHub client
     github_client = GitHubClient(personal_access_token=pat)
     
+    # Build repo URL from full_name
+    repo_url = f"https://github.com/{repo.full_name}"
+    
     # Update status to 'cloning'
     repo.clone_status = "cloning"
     db.commit()
     
     try:
         # Clone repository (synchronous for now)
-        branch = clone_req.branch or repo.branch
+        branch = clone_req.branch or repo.default_branch
         clone_metadata = github_client.clone_repository(
-            repo_url=repo.url,
+            repo_url=repo_url,
             user_id=current_user.id,
             repo_id=repo.id,
             branch=branch,
@@ -487,8 +623,7 @@ def clone_repository(
         repo.clone_path = clone_metadata["clone_path"]
         repo.clone_status = clone_metadata["clone_status"]
         repo.cloned_at = clone_metadata["cloned_at"]
-        repo.clone_size_mb = clone_metadata["clone_size_mb"]
-        repo.redis_cache_key = clone_metadata["redis_cache_key"]
+        # Note: clone_size_mb and redis_cache_key no longer exist in schema
         
         db.commit()
         db.refresh(repo)
@@ -497,9 +632,9 @@ def clone_repository(
             "repository_id": repo.id,
             "clone_status": repo.clone_status,
             "clone_path": repo.clone_path,
-            "clone_size_mb": repo.clone_size_mb,
-            "clone_duration_seconds": clone_metadata["clone_duration_seconds"],
-            "cloned_at": repo.cloned_at.isoformat(),
+            "clone_size_mb": None,  # No longer tracked
+            "clone_duration_seconds": clone_metadata.get("clone_duration_seconds", 0),
+            "cloned_at": repo.cloned_at.isoformat() if repo.cloned_at else None,
             "message": "Repository cloned successfully"
         }
         
@@ -536,7 +671,7 @@ def get_clone_status(
             detail="Repository not found"
         )
     
-    # Check Redis cache
+    # Check Redis cache (if needed)
     redis_client = get_redis_client()
     cached_metadata = None
     if redis_client.is_connected():
@@ -547,7 +682,7 @@ def get_clone_status(
         "clone_status": repo.clone_status,
         "clone_path": repo.clone_path,
         "cloned_at": repo.cloned_at,
-        "clone_size_mb": repo.clone_size_mb,
+        "clone_size_mb": None,  # No longer tracked in database
         "cached": cached_metadata is not None,
         "message": f"Clone status: {repo.clone_status}"
     }
@@ -583,11 +718,15 @@ def delete_clone(
             detail="Repository is not cloned"
         )
     
-    # Decrypt PAT if available
+    # Get user's PAT from credentials
+    user_creds = db.query(UserCredentials).filter(
+        UserCredentials.user_id == current_user.id
+    ).first()
+    
     pat = None
-    if repo.encrypted_pat:
+    if user_creds:
         try:
-            pat = GitHubClient().decrypt_pat(repo.encrypted_pat)
+            pat = GitHubClient().decrypt_pat(user_creds.encrypted_token)
         except ValueError:
             pass  # Continue even if PAT decryption fails
     
@@ -609,8 +748,7 @@ def delete_clone(
     repo.clone_status = "not_cloned"
     repo.clone_path = None
     repo.cloned_at = None
-    repo.clone_size_mb = None
-    repo.redis_cache_key = None
+    # Note: clone_size_mb and redis_cache_key no longer exist
     
     db.commit()
     

@@ -133,3 +133,15 @@ export const getCacheStats = async () => {
 export const flushCache = async () => {
     await apiClient.delete('/api/repositories/cache/flush');
 };
+
+/**
+ * Fetch repository information from GitHub (using stored PAT)
+ * @param {string} url - GitHub repository URL
+ * @returns {Promise<Object>} Repository metadata
+ */
+export const fetchRepositoryInfo = async (url) => {
+    const response = await apiClient.post('/api/repositories/fetch-info', null, {
+        params: { repo_url: url }
+    });
+    return response.data;
+};

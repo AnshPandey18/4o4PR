@@ -13,7 +13,7 @@ from app.agents.bug_detector import (
     PytestNotInstalledError,
     BugDetectorError
 )
-from app.models.schemas import BugReport, BugDetectionResult
+from app.schemas.bug_detection import BugReport, BugDetectionResult
 
 
 @pytest.fixture

@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import Button from '../components/Button';
-import authService from '../services/authService';
 import './Auth.css';
 
-export default function Signup({ onLogin }) {
+export default function Signup() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { register, isAuthenticated } = useAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,16 +35,8 @@ export default function Signup({ onLogin }) {
     setLoading(true);
     
     try {
-      // Register user
-      await authService.register(email, password, name);
-      
-      // Auto-login after registration
-      await authService.login(email, password);
-      
-      // Also call onLogin for existing app state
-      onLogin({ email, name });
-      
-      // Navigate to dashboard
+      await register(email, password, name);
+      // Navigation will happen automatically
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.detail || 'Registration failed. Please try again.');

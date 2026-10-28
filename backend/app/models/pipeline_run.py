@@ -1,5 +1,5 @@
 """PipelineRun model - represents an orchestrator pipeline execution."""
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from ..database import Base
@@ -11,7 +11,7 @@ class PipelineRun(Base):
     
     Each run represents a complete execution of the 4o4PR orchestrator
     on a specific repository, including:
-    - Configuration (orchestrator_root, import_roots, etc.)
+    - Input configuration (mode, ref, commit)
     - Execution tracking (start time, duration, status)
     - Results (bugs detected, patches generated)
     - Error tracking (if failed)
@@ -33,17 +33,10 @@ class PipelineRun(Base):
         nullable=False,
         index=True
     )
-    user_id = Column(
-        Integer,
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True
-    )
     
     # ========================================================================
-    # Run Metadata
+    # Run Status & Tracking
     # ========================================================================
-    run_id = Column(String(100), unique=True, nullable=False, index=True)  # e.g., "run_20261008_143022"
     status = Column(
         String(50),
         nullable=False,
@@ -52,20 +45,17 @@ class PipelineRun(Base):
     )  # pending, queued, running, completed, failed, cancelled
     
     # ========================================================================
-    # Orchestrator Configuration
+    # Input Configuration
     # ========================================================================
-    orchestrator_root = Column(Text, nullable=False)  # Path to cloned repo
-    import_roots = Column(Text, nullable=True)  # Comma-separated (e.g., "src,lib")
-    output_dir = Column(Text, nullable=True)  # Where results are stored
-    config_file = Column(Text, nullable=True)  # Path to settings.yaml if used
-    verbose = Column(Boolean, default=True)
+    input_mode = Column(String(50), nullable=True)  # e.g., "branch", "tag", "pr", "commit"
+    input_ref = Column(String(255), nullable=True)  # e.g., "main", "v1.0.0", "123", "abc123..."
+    commit_sha = Column(String(64), nullable=True)  # Actual commit SHA that was processed
     
     # ========================================================================
     # Execution Tracking
     # ========================================================================
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
-    duration_seconds = Column(Integer, nullable=True)
     
     # ========================================================================
     # Results
@@ -78,7 +68,11 @@ class PipelineRun(Base):
     # Error Tracking
     # ========================================================================
     error_message = Column(Text, nullable=True)
-    error_traceback = Column(Text, nullable=True)
+    
+    # ========================================================================
+    # Background Task ID (for Celery/Redis)
+    # ========================================================================
+    task_id = Column(String(255), nullable=True, index=True)  # Celery task ID or similar
     
     # ========================================================================
     # Metadata
@@ -90,14 +84,13 @@ class PipelineRun(Base):
     # Relationships
     # ========================================================================
     repository = relationship("Repository", backref="pipeline_runs")
-    user = relationship("User", backref="pipeline_runs")
     
     # ========================================================================
     # Methods
     # ========================================================================
     
     def __repr__(self):
-        return f"<PipelineRun(id={self.id}, run_id={self.run_id}, status={self.status})>"
+        return f"<PipelineRun(id={self.id}, repository_id={self.repository_id}, status={self.status})>"
     
     @property
     def is_pending(self) -> bool:
@@ -141,22 +134,19 @@ class PipelineRun(Base):
         return {
             "id": self.id,
             "repository_id": self.repository_id,
-            "user_id": self.user_id,
-            "run_id": self.run_id,
             "status": self.status,
-            "orchestrator_root": self.orchestrator_root,
-            "import_roots": self.import_roots,
-            "output_dir": self.output_dir,
-            "config_file": self.config_file,
-            "verbose": self.verbose,
+            "input_mode": self.input_mode,
+            "input_ref": self.input_ref,
+            "commit_sha": self.commit_sha,
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
-            "duration_seconds": self.duration_seconds,
             "bugs_detected": self.bugs_detected,
             "bugs_fixed": self.bugs_fixed,
             "patches_generated": self.patches_generated,
             "success_rate": self.success_rate,
             "error_message": self.error_message,
+            "task_id": self.task_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
+

@@ -1,8 +1,16 @@
 import React from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import './NavPill.css';
 
-export default function NavPill({ user, onLogout }) {
+export default function NavPill() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
   return (
     <header className="nav-pill-header">
       <div className="nav-pill-container">
@@ -15,6 +23,14 @@ export default function NavPill({ user, onLogout }) {
         <nav className="nav-pill-nav">
           {user ? (
             <>
+              <NavLink to="/dashboard" className="nav-link-item">
+                Dashboard
+              </NavLink>
+
+              <NavLink to="/repositories" className="nav-link-item">
+                Repo's
+              </NavLink>
+
               <NavLink to="/run" className="nav-link-item">
                 Trigger Run
               </NavLink>
@@ -61,7 +77,7 @@ export default function NavPill({ user, onLogout }) {
         {/* Action button: conditional Sign In or Logout */}
         {user ? (
           <button
-            onClick={onLogout}
+            onClick={handleLogout}
             className="nav-pill-btn"
             style={{ border: 'none', cursor: 'pointer', outline: 'none' }}
           >
