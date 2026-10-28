@@ -11,17 +11,9 @@ from pydantic import BaseModel, Field, validator
 class PipelineRunCreate(BaseModel):
     """Schema for creating a new pipeline run."""
     repository_id: int = Field(..., description="Repository ID to run pipeline on")
-    import_roots: Optional[str] = Field(default="src", description="Comma-separated import roots")
-    output_dir: Optional[str] = Field(default=None, description="Output directory for results")
-    config_file: Optional[str] = Field(default=None, description="Path to settings.yaml")
-    verbose: bool = Field(default=True, description="Enable verbose logging")
-    
-    @validator("import_roots")
-    def validate_import_roots(cls, v):
-        """Validate import_roots format."""
-        if v and not v.strip():
-            raise ValueError("import_roots cannot be empty")
-        return v.strip() if v else "src"
+    input_mode: Optional[str] = Field(default="branch", description="Run mode: branch, pr, or commit")
+    input_ref: Optional[str] = Field(default=None, description="Branch name, PR URL, or commit SHA")
+    commit_sha: Optional[str] = Field(default=None, description="Commit SHA to process")
 
 
 class PipelineRunUpdate(BaseModel):
@@ -31,7 +23,6 @@ class PipelineRunUpdate(BaseModel):
     bugs_fixed: Optional[int] = Field(default=None, ge=0)
     patches_generated: Optional[int] = Field(default=None, ge=0)
     error_message: Optional[str] = Field(default=None)
-    error_traceback: Optional[str] = Field(default=None)
     
     @validator("status")
     def validate_status(cls, v):
@@ -47,22 +38,17 @@ class PipelineRunResponse(BaseModel):
     """Schema for pipeline run response."""
     id: int
     repository_id: int
-    user_id: int
-    run_id: str
     status: str
-    orchestrator_root: str
-    import_roots: Optional[str]
-    output_dir: Optional[str]
-    config_file: Optional[str]
-    verbose: bool
+    input_mode: Optional[str]
+    input_ref: Optional[str]
+    commit_sha: Optional[str]
     started_at: Optional[datetime]
     completed_at: Optional[datetime]
-    duration_seconds: Optional[int]
     bugs_detected: int
     bugs_fixed: int
     patches_generated: int
     error_message: Optional[str]
-    error_traceback: Optional[str]
+    task_id: Optional[str]
     created_at: datetime
     updated_at: Optional[datetime]
     
@@ -100,10 +86,20 @@ class PipelineRunStatsResponse(BaseModel):
 
 class PipelineRunTriggerRequest(BaseModel):
     """Schema for triggering a new pipeline run."""
-    repository_id: int = Field(..., description="Repository ID to analyze")
+    repository_id: Optional[int] = Field(default=None, description="Repository ID to analyze (for branch/commit modes)")
+    input_mode: str = Field(..., description="Run mode: 'branch', 'pr', or 'commit'")
+    input_ref: str = Field(..., description="Branch name, PR URL, or commit SHA")
     import_roots: Optional[str] = Field(default="src", description="Comma-separated import roots (e.g., 'src,lib')")
     verbose: bool = Field(default=True, description="Enable verbose output")
     force_reclone: bool = Field(default=False, description="Force reclone even if cached")
+    
+    @validator("input_mode")
+    def validate_input_mode(cls, v):
+        """Validate input_mode value."""
+        valid_modes = ["branch", "pr", "commit"]
+        if v not in valid_modes:
+            raise ValueError(f"Invalid input_mode. Must be one of: {', '.join(valid_modes)}")
+        return v
 
 
 class PipelineRunTriggerResponse(BaseModel):

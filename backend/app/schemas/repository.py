@@ -65,32 +65,22 @@ class RepositoryUpdate(BaseModel):
 class RepositoryResponse(BaseModel):
     """Schema for repository response."""
     id: int
-    name: str
-    url: str
-    branch: str
     owner_id: int
-    is_active: bool
-    last_scan: Optional[datetime]
+    full_name: str
     description: Optional[str]
+    default_branch: str
+    is_private: bool
+    is_active: bool
     created_at: datetime
     updated_at: Optional[datetime]
     
-    # GitHub metadata (may be None if not yet fetched)
+    # GitHub metadata
     github_id: Optional[int]
-    full_name: Optional[str]
-    owner_login: Optional[str]
-    repo_name: Optional[str]
-    default_branch: Optional[str]
-    is_private: Optional[bool]
-    stars_count: Optional[int]
-    language: Optional[str]
     
     # Clone metadata
     clone_path: Optional[str]
-    clone_status: Optional[str]
+    clone_status: str
     cloned_at: Optional[datetime]
-    clone_size_mb: Optional[float]
-    redis_cache_key: Optional[str]
     commit_sha: Optional[str]
     
     class Config:
@@ -130,9 +120,8 @@ class CloneResponse(BaseModel):
     repository_id: int
     clone_status: str
     clone_path: str
-    clone_size_mb: float
     clone_duration_seconds: float
-    cloned_at: str
+    cloned_at: Optional[str]
     message: str
 
 
@@ -142,7 +131,6 @@ class CloneStatusResponse(BaseModel):
     clone_status: str
     clone_path: Optional[str]
     cloned_at: Optional[datetime]
-    clone_size_mb: Optional[float]
     cached: bool
     message: str
 

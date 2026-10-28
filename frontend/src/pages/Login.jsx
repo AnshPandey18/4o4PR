@@ -1,15 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import Button from '../components/Button';
-import authService from '../services/authService';
 import './Auth.css';
 
-export default function Login({ onLogin }) {
+export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login, isAuthenticated } = useAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,13 +29,8 @@ export default function Login({ onLogin }) {
     setLoading(true);
     
     try {
-      // Call backend API
-      await authService.login(email, password);
-      
-      // Also call onLogin for existing app state
-      onLogin({ email });
-      
-      // Navigate to dashboard
+      await login(email, password);
+      // Navigation will happen automatically via useEffect
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid email or password');

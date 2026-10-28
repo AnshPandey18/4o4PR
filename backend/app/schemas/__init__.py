@@ -30,3 +30,4 @@ from .pipeline_run import (
     PipelineRunCancelRequest,
     PipelineRunCancelResponse,
 )
+from .bug_detection import BugReport, BugDetectionResult

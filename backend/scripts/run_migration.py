@@ -1,4 +1,4 @@
-"""Script to run database migration 002."""
+"""Script to run database migrations."""
 import os
 import sys
 from sqlalchemy import create_engine, text
@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-def run_migration():
-    """Run migration 002: GitHub Integration."""
+def run_migration(migration_number: str = "004"):
+    """Run a specific database migration."""
     
     # Get database URL from environment
     database_url = os.getenv("DATABASE_URL")
@@ -30,13 +30,23 @@ def run_migration():
             print(f"✓ Connected to PostgreSQL: {version}")
         
         # Read migration file
-        migration_file = "migrations/002_add_github_integration.sql"
-        if not os.path.exists(migration_file):
-            print(f"❌ Migration file not found: {migration_file}")
+        migration_file = f"migrations/{migration_number}_*.sql"
+        import glob
+        matching_files = glob.glob(f"migrations/{migration_number}_*.sql")
+        if not matching_files:
+            print(f"❌ Migration file not found: migrations/{migration_number}_*.sql")
             return False
         
+        # Filter out rollback files
+        matching_files = [f for f in matching_files if "rollback" not in f.lower()]
+        if not matching_files:
+            print(f"❌ Migration file not found (only rollback found)")
+            return False
+            
+        migration_file = matching_files[0]
+        
         print(f"\n📄 Reading migration file: {migration_file}")
-        with open(migration_file, "r") as f:
+        with open(migration_file, "r", encoding="utf-8") as f:
             migration_sql = f.read()
         
         # Count statements (rough estimate)
@@ -44,7 +54,7 @@ def run_migration():
         print(f"   Statements to execute: ~{statement_count}")
         
         # Execute migration
-        print(f"\n🔄 Executing migration 002...")
+        print(f"\n🔄 Executing migration {migration_number}...")
         with engine.begin() as conn:
             # Execute the entire migration as one transaction
             conn.execute(text(migration_sql))
@@ -54,51 +64,28 @@ def run_migration():
         # Verify migration
         print(f"\n🔍 Verifying migration...")
         with engine.connect() as conn:
-            # Check repositories columns
+            # Check tables exist
             result = conn.execute(text("""
-                SELECT column_name, data_type 
-                FROM information_schema.columns 
-                WHERE table_name = 'repositories' 
-                ORDER BY ordinal_position;
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public'
+                AND table_type = 'BASE TABLE'
+                ORDER BY table_name;
             """))
-            repo_columns = result.fetchall()
-            print(f"✓ repositories table: {len(repo_columns)} columns")
-            
-            # Check if new columns exist
-            new_columns = ["github_id", "clone_status", "encrypted_pat", "redis_cache_key"]
-            found_columns = [col[0] for col in repo_columns]
-            for col in new_columns:
-                if col in found_columns:
-                    print(f"  ✓ {col} exists")
-                else:
-                    print(f"  ✗ {col} MISSING")
-                    return False
-            
-            # Check pipeline_runs table
-            result = conn.execute(text("""
-                SELECT column_name, data_type 
-                FROM information_schema.columns 
-                WHERE table_name = 'pipeline_runs' 
-                ORDER BY ordinal_position;
-            """))
-            run_columns = result.fetchall()
-            print(f"\n✓ pipeline_runs table: {len(run_columns)} columns")
+            tables = [row[0] for row in result.fetchall()]
+            print(f"✓ Tables in database: {', '.join(tables)}")
             
             # Check row counts
-            result = conn.execute(text("SELECT COUNT(*) FROM repositories;"))
-            repo_count = result.fetchone()[0]
-            print(f"\n📊 Current data:")
-            print(f"  - repositories: {repo_count} rows")
-            
-            result = conn.execute(text("SELECT COUNT(*) FROM pipeline_runs;"))
-            run_count = result.fetchone()[0]
-            print(f"  - pipeline_runs: {run_count} rows")
+            for table_name in ['users', 'repositories', 'pipeline_runs']:
+                if table_name in tables:
+                    result = conn.execute(text(f"SELECT COUNT(*) FROM {table_name};"))
+                    count = result.fetchone()[0]
+                    print(f"  - {table_name}: {count} rows")
         
-        print(f"\n✅ Migration 002 completed successfully!")
+        print(f"\n✅ Migration {migration_number} completed successfully!")
         print(f"\nNext steps:")
-        print(f"  1. Start Redis: docker-compose up -d redis")
-        print(f"  2. Start backend: uvicorn app.main:app --reload")
-        print(f"  3. Test API: curl http://localhost:8000/docs")
+        print(f"  1. Start backend: uvicorn app.main:app --reload")
+        print(f"  2. Test API: curl http://localhost:8000/docs")
         
         return True
         
@@ -109,10 +96,15 @@ def run_migration():
         return False
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Run database migrations")
+    parser.add_argument("--migration", "-m", default="004", help="Migration number to run (default: 004)")
+    args = parser.parse_args()
+    
     print("=" * 60)
-    print("  Database Migration 002: GitHub Integration")
+    print(f"  Database Migration {args.migration}")
     print("=" * 60)
     print()
     
-    success = run_migration()
+    success = run_migration(args.migration)
     sys.exit(0 if success else 1)

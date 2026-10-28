@@ -759,7 +759,6 @@ class OrchestratorDB:
                 "repository_id": repo.id,
                 "run_id": run.run_id,
                 "clone_path": repo.clone_path,
-                "clone_size_mb": float(repo.clone_size_mb or 0.0),
                 "clone_status": repo.clone_status,
                 "commit_sha": repo.commit_sha,
                 "message": (
@@ -856,7 +855,7 @@ class OrchestratorDB:
     def execute_onboarding(
         self,
         repository_id: int,
-        run_id: str,
+        run_id: int,  # Changed to int (database ID)
         repo_url: str,
         branch: str = "main",
         pat: Optional[str] = None,
@@ -866,6 +865,13 @@ class OrchestratorDB:
 
         This is the background half of the onboarding workflow: it uses the
         records that were already persisted by ``register_repository``.
+
+        Args:
+            repository_id: Database ID of the repository
+            run_id: Database ID of the pipeline run (not the run_id string)
+            repo_url: Repository URL
+            branch: Branch to clone
+            pat: Personal access token
 
         Returns:
             Dictionary with the operation result
@@ -882,7 +888,7 @@ class OrchestratorDB:
                 }
 
             run = self.db.query(PipelineRun).filter(
-                PipelineRun.run_id == run_id
+                PipelineRun.id == run_id  # Changed to use ID instead of run_id
             ).first()
             if not run:
                 return {
@@ -905,7 +911,7 @@ class OrchestratorDB:
                     "status": "FAILED",
                     "stage": "CLONING",
                     "repository_id": repo.id,
-                    "run_id": run.run_id,
+                    "run_id": str(run.id),  # Return database ID as string
                     "error": run.error_message,
                 }
             except Exception as clone_error:
@@ -918,15 +924,9 @@ class OrchestratorDB:
                     "status": "FAILED",
                     "stage": "CLONING",
                     "repository_id": repo.id,
-                    "run_id": run.run_id,
+                    "run_id": str(run.id),  # Return database ID as string
                     "error": run.error_message,
                 }
-
-            # The clone may have produced the workspace after the run record
-            # was created, so keep the run pointing at the real directory.
-            if repo.clone_path:
-                run.orchestrator_root = repo.clone_path
-                self.db.commit()
 
             exit_code = self.run_pipeline()
 
@@ -934,7 +934,7 @@ class OrchestratorDB:
                 "status": "COMPLETED" if exit_code == 0 else "FAILED",
                 "stage": "EXECUTING",
                 "repository_id": repo.id,
-                "run_id": run.run_id,
+                "run_id": str(run.id),  # Return database ID as string
                 "pipeline_status": run.status,
                 "pipeline_exit_code": exit_code,
                 "clone_path": repo.clone_path,
@@ -960,9 +960,8 @@ class OrchestratorDB:
             print(f"   ✓ Reusing existing clone: {repo.clone_path}")
             return {
                 "clone_path": repo.clone_path,
-                "clone_size_mb": float(repo.clone_size_mb or 0.0),
+                "clone_size_mb": 0.0,  # Clone size not stored in DB, returned for logging only
                 "clone_duration_seconds": 0.0,
-                "redis_cache_key": repo.redis_cache_key,
                 "commit_sha": repo.commit_sha,
             }
 
@@ -979,10 +978,8 @@ class OrchestratorDB:
         repo.clone_path = clone_metadata["clone_path"]
         repo.clone_status = "cloned"
         repo.cloned_at = _utcnow()
-        repo.clone_size_mb = clone_metadata["clone_size_mb"]
-        repo.redis_cache_key = clone_metadata["redis_cache_key"]
         repo.commit_sha = clone_metadata.get("commit_sha")
-        repo.branch = branch
+        # Note: branch is tracked per-run via PipelineRun.input_ref, not on repository
         self.db.commit()
         self.db.refresh(repo)
 
@@ -1046,12 +1043,11 @@ class OrchestratorDB:
             return False
 
         print("✓ Loaded run configuration:")
-        print(f"  Run ID: {self.run.run_id}")
+        print(f"  Run ID: {self.run.id}")
         print(f"  Repository: {self.repo.name}")
-        print(f"  Clone path: {self.run.orchestrator_root}")
-        print(f"  Import roots: {self.run.import_roots}")
-        print(f"  Output dir: {self.run.output_dir}")
-        print(f"  Verbose: {self.run.verbose}")
+        print(f"  Clone path: {self.repo.clone_path}")
+        print(f"  Input mode: {self.run.input_mode}")
+        print(f"  Input ref: {self.run.input_ref}")
         print(f"  Current status: {self.run.status}")
 
         return True
@@ -1142,7 +1138,7 @@ class OrchestratorDB:
             self.update_status("running")
 
             # Validate clone path exists
-            if not self.run.orchestrator_root or not os.path.exists(self.run.orchestrator_root):
+            if not self.repo.clone_path or not os.path.exists(self.repo.clone_path):
                 raise PipelineExecutionError(
                     "Clone path does not exist. The repository must be cloned before the pipeline runs."
                 )
@@ -1150,19 +1146,18 @@ class OrchestratorDB:
             output_dir = self._resolve_output_dir(self.run)
             os.makedirs(output_dir, exist_ok=True)
 
-            print(f"📂 Working directory: {self.run.orchestrator_root}")
+            print(f"📂 Working directory: {self.repo.clone_path}")
             print(f"📊 Output directory: {output_dir}")
             print()
 
             # Parse import roots
-            import_roots_str = self.run.import_roots or "src"
-            import_roots = [r.strip() for r in import_roots_str.split(",") if r.strip()]
+            import_roots = ["src"]  # Default
 
             # Load settings
             try:
                 settings = load_settings(
-                    config_path=Path(self.run.config_file) if self.run.config_file else None,
-                    project_root=Path(self.run.orchestrator_root)
+                    config_path=None,  # Use default settings
+                    project_root=Path(self.repo.clone_path)
                 )
             except Exception as e:
                 print(f"Warning: Could not load settings: {e}")
@@ -1170,12 +1165,12 @@ class OrchestratorDB:
 
             # Create standalone orchestrator and run pipeline
             standalone = StandaloneOrchestrator(
-                project_root=Path(self.run.orchestrator_root),
+                project_root=Path(self.repo.clone_path),
                 import_roots=import_roots,
                 test_dirs=["tests", "test"],
                 exclude_patterns=["**/__pycache__", "**/*.pyc", ".git/**"],
                 output_dir=Path(output_dir),
-                run_id=self.run.run_id,
+                run_id=str(self.run.id),  # Use database ID as string
                 settings=settings
             )
 
@@ -1277,26 +1272,22 @@ class OrchestratorDB:
                 Repository.id == repository_id
             ).first()
             if existing:
-                self._refresh_repository_metadata(existing, branch, visibility, pat)
+                self._update_repository_metadata(existing, branch, visibility, pat)
                 return existing, True
 
         existing = self._find_existing_repository(repo_url)
         if existing:
-            self._refresh_repository_metadata(existing, branch, visibility, pat)
+            self._update_repository_metadata(existing, branch, visibility, pat)
             return existing, True
 
         github_client = GitHubClient(personal_access_token=pat)
         return self._create_repository_record(repo_url, branch, visibility, pat, github_client), False
 
-    def _refresh_repository_metadata(
-        self,
-        repo: Repository,
-        branch: str,
-        visibility: str,
-        pat: Optional[str],
+    def _update_repository_metadata(
+        self, repo: Repository, branch: str, visibility: str, pat: Optional[str] = None
     ) -> None:
         """Refresh the mutable metadata of an existing repository record."""
-        repo.branch = branch
+        # Note: branch is tracked per-run via input_ref, not on repository
         repo.is_private = (visibility == "private")
 
         if pat:
@@ -1312,7 +1303,7 @@ class OrchestratorDB:
             repo.clone_status == "cloned"
             and repo.clone_path
             and os.path.isdir(repo.clone_path)
-            and repo.branch == branch
+            # Branch is not stored on repo - one clone serves multiple branches
         )
 
     def _mark_clone_failed(self, repo: Repository) -> None:
@@ -1323,20 +1314,17 @@ class OrchestratorDB:
         except Exception:
             self.db.rollback()
 
-    def _mark_run_failed(self, run_id: str, message: str) -> None:
+    def _mark_run_failed(self, run_id: int, message: str) -> None:
         """Record a terminal failure on a pipeline run row."""
         try:
             run = self.db.query(PipelineRun).filter(
-                PipelineRun.run_id == run_id
+                PipelineRun.id == run_id  # Changed to use ID
             ).first()
             if not run:
                 return
             run.status = "failed"
             run.error_message = self._sanitize_error(message)
-            completed_at = _utcnow()
-            run.completed_at = completed_at
-            if run.started_at:
-                run.duration_seconds = _elapsed_seconds(run.started_at, completed_at)
+            run.completed_at = _utcnow()
             self.db.commit()
         except Exception:
             self.db.rollback()
@@ -1405,23 +1393,17 @@ class OrchestratorDB:
         ).first()
 
         if active_run:
-            print(f"   ⚠ Active pipeline run already exists: {active_run.run_id}")
+            print(f"   ⚠ Active pipeline run already exists: {active_run.id}")
             return active_run
 
         if not run_id:
             run_id = self.generate_run_id()
 
-        output_dir = str(BACKEND_DIR / "runs" / run_id)
-
         new_run = PipelineRun(
-            run_id=run_id,
             repository_id=repo.id,
-            user_id=repo.owner_id,
-            orchestrator_root=repo.clone_path or "",
-            import_roots="src",  # Default import root; can be customized per run
-            output_dir=output_dir,
-            verbose=True,
             status="queued",
+            input_mode="branch",  # Default to branch mode
+            input_ref=branch,
         )
 
         self.db.add(new_run)
@@ -1438,8 +1420,9 @@ class OrchestratorDB:
 
     @staticmethod
     def _resolve_output_dir(run: PipelineRun) -> str:
-        """Resolve the absolute output directory for a run."""
-        output_dir = run.output_dir or str(BACKEND_DIR / "runs" / run.run_id)
+        """Resolve the absolute output directory for a run, based on database ID."""
+        # Always calculate based on database ID since output_dir field doesn't exist
+        output_dir = str(BACKEND_DIR / "runs" / str(run.id))
         output_path = Path(output_dir)
         if not output_path.is_absolute():
             output_path = BACKEND_DIR / output_path
@@ -1498,7 +1481,7 @@ class OrchestratorDB:
 def execute_onboarding_task(
     user_id: int,
     repository_id: int,
-    run_id: str,
+    run_id: int,  # Changed to int (database ID)
     repo_url: str,
     branch: str = "main",
     pat: Optional[str] = None,
@@ -1510,18 +1493,38 @@ def execute_onboarding_task(
     execution never block the request/event loop. Every failure is recorded on
     the pipeline run row so the frontend always observes the real state.
 
+    Args:
+        user_id: User ID
+        repository_id: Database ID of the repository
+        run_id: Database ID of the pipeline run (not the run_id string)
+        repo_url: Repository URL
+        branch: Branch to clone
+        pat: Personal access token
+
     Returns:
         Dictionary with the operation result
     """
+    print(f"=" * 80)
+    print(f"🚀 BACKGROUND TASK STARTED")
+    print(f"   User ID: {user_id}")
+    print(f"   Repository ID: {repository_id}")
+    print(f"   Run ID: {run_id}")
+    print(f"   Repo URL: {repo_url}")
+    print(f"   Branch: {branch}")
+    print(f"=" * 80)
+    
     if not DB_AVAILABLE:
+        error_msg = "Database mode requires database dependencies"
+        print(f"❌ {error_msg}")
         return {
             "status": "FAILED",
             "stage": "VALIDATING",
-            "error": "Database mode requires database dependencies",
+            "error": error_msg,
         }
     
     orchestrator = OrchestratorDB(user_id=user_id)
     try:
+        print(f"📝 Calling execute_onboarding...")
         result = orchestrator.execute_onboarding(
             repository_id=repository_id,
             run_id=run_id,
@@ -1529,16 +1532,19 @@ def execute_onboarding_task(
             branch=branch,
             pat=pat,
         )
+        print(f"✅ Onboarding completed: {result.get('status')}")
         return result
     except Exception as e:
         message = OrchestratorDB._sanitize_error(str(e))
         print(f"❌ Onboarding task failed: {message}")
+        import traceback
+        traceback.print_exc()
         orchestrator._mark_run_failed(run_id, message)
         return {
             "status": "FAILED",
             "stage": "EXECUTING",
             "repository_id": repository_id,
-            "run_id": run_id,
+            "run_id": str(run_id),
             "error": message,
         }
 

@@ -277,7 +277,20 @@ class GitHubClient:
             # Remove stale clone of the same repository only
             if os.path.exists(clone_path):
                 print(f"⚠ Removing existing clone: {clone_path}")
-                shutil.rmtree(clone_path)
+                # Use the same handler to deal with Windows read-only files
+                def handle_remove_readonly(func, path, exc):
+                    """Handle read-only files on Windows."""
+                    import stat
+                    if not os.access(path, os.W_OK):
+                        os.chmod(path, stat.S_IWUSR)
+                        func(path)
+                    else:
+                        raise
+                
+                try:
+                    shutil.rmtree(clone_path, onerror=handle_remove_readonly)
+                except Exception as e:
+                    raise ValueError(f"Could not remove existing clone: {e}")
             
             print(f"🔄 Cloning repository: {repo_identifier}")
             start_time = datetime.utcnow()
@@ -390,7 +403,17 @@ class GitHubClient:
     def _remove_partial_clone(clone_path: str) -> None:
         """Delete an incomplete clone so the workspace can be reused."""
         try:
-            shutil.rmtree(clone_path)
+            # On Windows, git files can be read-only. Use shutil with onerror handler
+            def handle_remove_readonly(func, path, exc):
+                """Handle read-only files on Windows."""
+                import stat
+                if not os.access(path, os.W_OK):
+                    os.chmod(path, stat.S_IWUSR)
+                    func(path)
+                else:
+                    raise
+            
+            shutil.rmtree(clone_path, onerror=handle_remove_readonly)
         except OSError:
             pass
     
@@ -481,8 +504,12 @@ class GitHubClient:
     @staticmethod
     def _format_git_error(error: GitCommandError) -> str:
         """Build a sanitized, user-safe message from a git failure."""
-        stderr = getattr(error, "stderr", "") or ""
-        lines = [line.strip() for line in stderr.splitlines() if line.strip()]
+        stderr = str(getattr(error, "stderr", "") or "")
+        stdout = str(getattr(error, "stdout", "") or "")
+        
+        # Combine stderr and stdout for error analysis
+        all_output = stderr + "\n" + stdout
+        lines = [line.strip() for line in all_output.splitlines() if line.strip()]
         
         # Git reports credential problems without echoing the secret itself
         for line in lines:
@@ -495,10 +522,15 @@ class GitHubClient:
                 return f"Branch not found in repository: {line}"
             if "could not resolve host" in lowered or "connection timed out" in lowered:
                 return "Network error while contacting GitHub."
+            if "fatal:" in lowered:
+                return f"Git error: {line[:300]}"
         
+        # If we have any output lines, use the last non-empty one
         if lines:
             return f"Git clone failed: {lines[-1][:300]}"
-        return "Git clone failed."
+        
+        # Last resort: include the error type
+        return f"Git clone failed with exit code {getattr(error, 'status', 'unknown')}"
     
     def _get_clone_path(self, user_id: int, owner: str, repo_name: str) -> str:
         """

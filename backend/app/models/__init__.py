@@ -2,6 +2,6 @@
 from .user import User
 from .repository import Repository
 from .pipeline_run import PipelineRun
-from .schemas import BugReport, BugDetectionResult
+from .user_credentials import UserCredentials
 
-__all__ = ["User", "Repository", "PipelineRun", "BugReport", "BugDetectionResult"]
+__all__ = ["User", "Repository", "PipelineRun", "UserCredentials"]

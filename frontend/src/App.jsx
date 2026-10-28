@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -8,25 +10,14 @@ import LiveStatus from './pages/LiveStatus';
 import Report from './pages/Report';
 import RunResult from './pages/RunResult';
 import Dashboard from './pages/Dashboard';
+import Repositories from './pages/Repositories';
 import NavPill from './components/NavPill';
 import HistorySidebar from './components/HistorySidebar';
-import authService from './services/authService';
 
 export default function App() {
-  const [user, setUser] = useState(null);
   const [activeRun, setActiveRun] = useState(null);
   // completedRun stores the final summary after a pipeline finishes
   const [completedRun, setCompletedRun] = useState(null);
-
-  const handleLogin = (userInfo) => {
-    setUser(userInfo);
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    setActiveRun(null);
-    setCompletedRun(null);
-  };
 
   const handleStartRun = (runDetails) => {
     setCompletedRun(null);
@@ -46,42 +37,76 @@ export default function App() {
   };
 
   return (
-    <Router>
-      <NavPill user={user} onLogout={handleLogout} />
-      {user && <HistorySidebar />}
-      <main style={{ minHeight: '100vh', width: '100%' }}>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login onLogin={handleLogin} />} />
-          <Route path="/signup" element={<Signup onLogin={handleLogin} />} />
-          
-          {/* Dashboard route */}
-          <Route 
-            path="/dashboard" 
-            element={user ? <Dashboard /> : <Navigate to="/login" replace />} 
-          />
-          
-          <Route 
-            path="/run" 
-            element={user ? <TriggerRun onStartRun={handleStartRun} /> : <Navigate to="/login" replace />} 
-          />
-          <Route 
-            path="/status" 
-            element={user ? <LiveStatus activeRun={activeRun} onResetRun={handleResetRun} onRunComplete={handleRunComplete} /> : <Navigate to="/login" replace />} 
-          />
-          <Route
-            path="/report"
-            element={user ? <Report completedRun={completedRun} /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/result"
-            element={user ? <RunResult activeRun={activeRun} /> : <Navigate to="/login" replace />}
-          />
-          
-          {/* Fallback routing */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <NavPill />
+        <HistorySidebar />
+        <main style={{ minHeight: '100vh', width: '100%' }}>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            
+            {/* Protected routes */}
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/repositories" 
+              element={
+                <ProtectedRoute>
+                  <Repositories />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/run" 
+              element={
+                <ProtectedRoute>
+                  <TriggerRun onStartRun={handleStartRun} />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/status" 
+              element={
+                <ProtectedRoute>
+                  <LiveStatus activeRun={activeRun} onResetRun={handleResetRun} onRunComplete={handleRunComplete} />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route
+              path="/report"
+              element={
+                <ProtectedRoute>
+                  <Report completedRun={completedRun} />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/result"
+              element={
+                <ProtectedRoute>
+                  <RunResult activeRun={activeRun} />
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Fallback routing */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+      </Router>
+    </AuthProvider>
   );
 }

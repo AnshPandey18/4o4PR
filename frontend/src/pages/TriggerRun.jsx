@@ -1,15 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MOCK_BUGS, MOCK_REPO_STATS } from '../data/mockPipeline';
-import { startRun, startDemoRun } from '../services/api';
-import RepositoryManager from '../components/RepositoryManager';
-import RunHistory from '../components/RunHistory';
 import { triggerPipelineRun } from '../api/pipelineRuns';
-import { onboardRepository } from '../api/repositories';
+import { getRepositories } from '../api/repositories';
 import './TriggerRun.css';
 
 /* ─── constants ─────────────────────────────────────────────────────────── */
-const REPO_DRAFT_KEY = '4o4pr.repositoryDraft';
 const PIPELINE_STEPS = [
   { n: '01', title: 'Environment Sync',     desc: 'Cloning repository and installing all dependencies.' },
   { n: '02', title: 'Failure Reproduction', desc: 'Executing specified test to capture stack trace logs.' },
@@ -27,133 +22,63 @@ const RUNTIME_SETTINGS = [
 ];
 
 const DEMO_REPO_STATS = {
-  healthIndex: '82%',
-  coverage: '61.5%',
-  activeTests: '11',
+  healthIndex: '—',
+  coverage: '—',
+  activeTests: '—',
   prSuccessRate: '—',
-  avgRepairTime: '~3s',
-  activeBranch: 'main',
-  status: 'Warning',
+  avgRepairTime: '—',
+  activeBranch: '—',
+  status: 'Ready',
 };
 
 /* ─── component ─────────────────────────────────────────────────────────── */
 export default function TriggerRun({ onStartRun }) {
-  const [sourceMode,   setSourceMode]   = useState('demo');   // 'demo' | 'github' | 'managed'
-  const [selectedBug,  setSelectedBug]  = useState(MOCK_BUGS[0].id);
+  const [configTab,    setConfigTab]    = useState('branch'); // 'branch' | 'pr' | 'commit'
   const [selectedRepo, setSelectedRepo] = useState(null);
+  const [repositories, setRepositories] = useState([]);
+  const [branchInput,  setBranchInput]  = useState('');
+  const [prUrl,        setPrUrl]        = useState('');
+  const [commitHash,   setCommitHash]   = useState('');
   const [launching,    setLaunching]    = useState(false);
   const [error,        setError]        = useState(null);
   const navigate = useNavigate();
   const pageRef  = useRef(null);
 
-  // GitHub Repos form state (for managed mode)
-  const [visibility, setVisibility] = useState('public'); // 'public' | 'private'
-  const [repoFormData, setRepoFormData] = useState({
-    url: '',
-    branch: 'main',
-    personal_access_token: '',
-  });
-  const [showToken, setShowToken] = useState(false);
-  const [repoValidationErrors, setRepoValidationErrors] = useState({});
+  // Success message
   const [repoSuccess, setRepoSuccess] = useState(null);
-  const [draftSaved, setDraftSaved] = useState(false);
 
-  const activeBug  = MOCK_BUGS.find(b => b.id === selectedBug) || MOCK_BUGS[0];
-  const repoStats  = sourceMode === 'demo' ? DEMO_REPO_STATS : (MOCK_REPO_STATS['AnshPandey18/4o4PR'] || {});
-  const sevColor   = { High: '#e6714f', Medium: '#ffb764', Low: '#20c2a4' }[activeBug.severity] || '#888';
+  const repoStats = selectedRepo ? {
+    healthIndex: '—',
+    coverage: '—',
+    activeTests: '—',
+    prSuccessRate: '—',
+    avgRepairTime: '—',
+    activeBranch: selectedRepo.default_branch || 'main',
+    status: 'Ready',
+  } : DEMO_REPO_STATS;
 
-  // The Run Pipeline button is enabled as soon as the required fields hold
-  // valid values, so a repository URL can be submitted directly.
-  const managedFormReady = sourceMode !== 'managed' || Boolean(
-    repoFormData.url.trim() &&
-    repoFormData.branch.trim() &&
-    (visibility === 'public' || repoFormData.personal_access_token.trim())
-  );
-  const canSubmit = managedFormReady;
-
-  /* ─── restore a previously saved draft (never includes a token) ─────── */
+  // Fetch repositories on mount
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(REPO_DRAFT_KEY);
-      if (!raw) return;
-      const draft = JSON.parse(raw);
-      setRepoFormData(prev => ({
-        ...prev,
-        url: draft.url || '',
-        branch: draft.branch || 'main',
-      }));
-      if (draft.visibility === 'private' || draft.visibility === 'public') {
-        setVisibility(draft.visibility);
+    const fetchRepos = async () => {
+      try {
+        const data = await getRepositories();
+        setRepositories(data.repositories || []);
+      } catch (err) {
+        console.error('Failed to fetch repositories:', err);
       }
-    } catch {
-      /* a malformed draft must never block the form */
-    }
+    };
+    fetchRepos();
   }, []);
 
-  /* ─── clear token when switching from private to public ────────────────── */
-  useEffect(() => {
-    if (visibility === 'public') {
-      setRepoFormData(prev => ({ ...prev, personal_access_token: '' }));
-      setShowToken(false);
-      setRepoValidationErrors(prev => ({ ...prev, personal_access_token: undefined }));
-    }
-  }, [visibility]);
+  // Form validation
+  const canSubmit = 
+    (configTab === 'branch' && selectedRepo && (branchInput || selectedRepo.default_branch)) ||
+    (configTab === 'pr' && prUrl.trim()) ||
+    (configTab === 'commit' && selectedRepo && commitHash.trim());
 
-  /* ─── GitHub Repos validation helpers ──────────────────────────────────── */
-  const validateUrl = (url) => {
-    if (!url.trim()) return 'Repository URL is required';
-    const githubPattern = /^(https?:\/\/)?(www\.)?github\.com\/[\w-]+\/[\w.-]+\/?$/;
-    const shortPattern = /^[\w-]+\/[\w.-]+$/;
-    if (!githubPattern.test(url) && !shortPattern.test(url)) {
-      return 'Please enter a valid GitHub repository URL';
-    }
-    return null;
-  };
-
-  const validateBranch = (branch) => {
-    if (!branch.trim()) return 'Branch name is required';
-    return null;
-  };
-
-  const validateToken = (token) => {
-    if (visibility === 'private' && !token.trim()) {
-      return 'Personal access token is required for private repositories';
-    }
-    return null;
-  };
-
-  const handleRepoInputChange = (field, value) => {
-    setRepoFormData(prev => ({ ...prev, [field]: value }));
-    setRepoValidationErrors(prev => ({ ...prev, [field]: undefined }));
-    setError(null);
-    setRepoSuccess(null);
-  };
-
-  /* ─── GitHub Repos form submission ─────────────────────────────────────── */
+  /* ─── Form submission ─────────────────────────────────────────────────── */
   const handleRunPipeline = async (e) => {
     e.preventDefault();
-
-    // Validate form only for managed mode
-    if (sourceMode !== 'managed') {
-      // Let the original handleSubmit handle demo/github modes
-      return handleSubmit(e);
-    }
-
-    // Validate managed mode form
-    const errors = {
-      url: validateUrl(repoFormData.url),
-      branch: validateBranch(repoFormData.branch),
-      personal_access_token: validateToken(repoFormData.personal_access_token),
-    };
-
-    Object.keys(errors).forEach(key => {
-      if (errors[key] === null) delete errors[key];
-    });
-
-    if (Object.keys(errors).length > 0) {
-      setRepoValidationErrors(errors);
-      return;
-    }
 
     if (launching) return;
 
@@ -162,35 +87,74 @@ export default function TriggerRun({ onStartRun }) {
     setRepoSuccess(null);
 
     try {
-      // Step 1: Onboard the repository and start the pipeline run.
-      // The backend clones the repository and executes the pipeline in the
-      // background; it returns as soon as both database records exist.
-      const payload = {
-        url: repoFormData.url,
-        branch: repoFormData.branch,
-        visibility,
-      };
-
-      if (visibility === 'private') {
-        payload.personal_access_token = repoFormData.personal_access_token;
+      let payload = {};
+      
+      // Branch Mode
+      if (configTab === 'branch') {
+        if (!selectedRepo) {
+          setError('Please select a repository');
+          setLaunching(false);
+          return;
+        }
+        
+        payload = {
+          repository_id: selectedRepo.id,
+          input_mode: 'branch',
+          input_ref: branchInput || selectedRepo.default_branch || 'main',
+          verbose: true,
+        };
+      }
+      
+      // Pull Request Mode
+      else if (configTab === 'pr') {
+        if (!prUrl.trim()) {
+          setError('Please enter a pull request URL');
+          setLaunching(false);
+          return;
+        }
+        
+        payload = {
+          input_mode: 'pr',
+          input_ref: prUrl.trim(),
+          verbose: true,
+        };
+      }
+      
+      // Commit Hash Mode
+      else if (configTab === 'commit') {
+        if (!selectedRepo) {
+          setError('Please select a repository');
+          setLaunching(false);
+          return;
+        }
+        if (!commitHash.trim()) {
+          setError('Please enter a commit hash');
+          setLaunching(false);
+          return;
+        }
+        
+        payload = {
+          repository_id: selectedRepo.id,
+          input_mode: 'commit',
+          input_ref: commitHash.trim(),
+          verbose: true,
+        };
       }
 
-      console.log('🚀 Onboarding repository...', { url: payload.url, branch: payload.branch, visibility });
-      const onboarded = await onboardRepository(payload);
+      console.log('🚀 Triggering pipeline run...', payload);
+      const runData = await triggerPipelineRun(payload);
 
-      const repositoryId = onboarded.repository_id;
-      const runId = onboarded.run_id;
-      const repositoryName = onboarded.repository?.name || repoFormData.url;
+      const runId = runData.run_id;
+      const repositoryName = selectedRepo?.full_name || 'Repository';
 
-      console.log('✓ Repository registered, pipeline queued:', { repositoryId, runId });
+      console.log('✓ Pipeline started:', { runId });
 
-      // The pipeline is still running: report it as started, never as finished.
       setRepoSuccess(`Pipeline started (Run ID: ${runId}). Tracking execution status…`);
 
-      // Hand the run to the status page, which polls the real backend state.
+      // Hand the run to the status page
       onStartRun({
         repo: repositoryName,
-        bug: 'Repository Analysis',
+        bug: `${configTab.toUpperCase()} Mode: ${payload.input_ref}`,
         runId,
         source: 'pipeline',
       });
@@ -206,72 +170,11 @@ export default function TriggerRun({ onStartRun }) {
     }
   };
 
-  /* ─── Save Draft ──────────────────────────────────────────────────────── */
-  const handleSaveDraft = () => {
-    try {
-      // The access token is deliberately excluded from the draft payload.
-      window.localStorage.setItem(REPO_DRAFT_KEY, JSON.stringify({
-        url: repoFormData.url,
-        branch: repoFormData.branch,
-        visibility,
-        savedAt: new Date().toISOString(),
-      }));
-      setDraftSaved(true);
-      setTimeout(() => setDraftSaved(false), 3000);
-    } catch {
-      setError('Could not save the draft in this browser.');
-    }
-  };
-
-  /* ─── submit ─────────────────────────────────────────────────────────── */
-  const handleSubmit = async e => {
-    if (e) e.preventDefault();
-    setError(null);
-    setLaunching(true);
-    try {
-      let runData;
-      if (sourceMode === 'demo') {
-        // Run the real CLI pipeline on tests/fixtures/sample_bugs
-        runData = await startDemoRun();
-      } else if (sourceMode === 'managed' && selectedRepo) {
-        // Use the new managed repository flow
-        runData = await triggerPipelineRun({
-          repository_id: selectedRepo.id,
-          verbose: true,
-          force_reclone: false
-        });
-      } else {
-        runData = await startRun({
-          repo: 'AnshPandey18/4o4PR',
-          bug: activeBug.title,
-          branch: 'main',
-        });
-      }
-      onStartRun({
-        repo: sourceMode === 'demo' 
-          ? 'demo/sample_bugs' 
-          : sourceMode === 'managed' 
-          ? selectedRepo?.name || 'managed repo'
-          : 'AnshPandey18/4o4PR',
-        bug:  sourceMode === 'demo'
-          ? 'Demo: sample_bugs fixture (calculator + string_utils)'
-          : sourceMode === 'managed'
-          ? 'Managed Repository Analysis'
-          : activeBug.title,
-        runId: runData.id,
-      });
-      navigate('/status');
-    } catch (err) {
-      setError(err.message || 'Failed to start run. Is the backend running?');
-      setLaunching(false);
-    }
-  };
-
   useEffect(() => {
-    const h = e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') handleSubmit(); };
+    const h = e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') handleRunPipeline(e); };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, [sourceMode, selectedBug]);
+  }, [configTab, selectedRepo, branchInput, prUrl, commitHash]);
 
   /* ─── render ─────────────────────────────────────────────────────────── */
   return (
@@ -307,92 +210,70 @@ export default function TriggerRun({ onStartRun }) {
 
               <form onSubmit={handleRunPipeline} className="tr2-form">
 
-                {/* ── source mode tabs ── */}
-                <div className="tr2-source-tabs">
+                {/* ── Configuration tabs (Branch / PR / Commit Hash) ── */}
+                <div className="tr2-config-tabs">
                   <button
                     type="button"
-                    className={`tr2-source-tab ${sourceMode === 'demo' ? 'tr2-source-tab-active' : ''}`}
-                    onClick={() => setSourceMode('demo')}
+                    className={`tr2-config-tab ${configTab === 'branch' ? 'tr2-config-tab-active' : ''}`}
+                    onClick={() => setConfigTab('branch')}
                   >
-                    {/* flask / beaker icon */}
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9 3h6M9 3v8l-4 9h14l-4-9V3"/>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path>
                     </svg>
-                    Demo Fixture
+                    Branch
                   </button>
                   <button
                     type="button"
-                    className={`tr2-source-tab ${sourceMode === 'managed' ? 'tr2-source-tab-active' : ''}`}
-                    onClick={() => setSourceMode('managed')}
+                    className={`tr2-config-tab ${configTab === 'pr' ? 'tr2-config-tab-active' : ''}`}
+                    onClick={() => setConfigTab('pr')}
                   >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M13 6h3a2 2 0 0 1 2 2v7"></path><line x1="6" y1="9" x2="6" y2="21"></line>
                     </svg>
-                    GitHub Repos
+                    Pull Request
                   </button>
                   <button
                     type="button"
-                    className={`tr2-source-tab ${sourceMode === 'github' ? 'tr2-source-tab-active' : ''}`}
-                    onClick={() => setSourceMode('github')}
+                    className={`tr2-config-tab ${configTab === 'commit' ? 'tr2-config-tab-active' : ''}`}
+                    onClick={() => setConfigTab('commit')}
                   >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="4"></circle><line x1="1.05" y1="12" x2="7" y2="12"></line><line x1="17.01" y1="12" x2="22.96" y2="12"></line>
                     </svg>
-                    Issues/PRs
+                    Commit Hash
                   </button>
                 </div>
 
-                {/* ── demo mode info strip ── */}
-                {sourceMode === 'demo' && (
-                  <div className="tr2-demo-strip">
-                    <div className="tr2-demo-strip-head">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                      </svg>
-                      Demo Mode
-                    </div>
-                    <div className="tr2-demo-paths">
-                      <div className="tr2-demo-path-row">
-                        <span className="tr2-demo-path-lbl">Input (faulty code)</span>
-                        <code className="tr2-demo-path-val">backend/tests/fixtures/sample_bugs</code>
-                      </div>
-                      <div className="tr2-demo-path-row">
-                        <span className="tr2-demo-path-lbl">Output</span>
-                        <code className="tr2-demo-path-val">backend/runs/</code>
-                      </div>
-                      <div className="tr2-demo-path-row">
-                        <span className="tr2-demo-path-lbl">Command</span>
-                        <code className="tr2-demo-path-val tr2-demo-cmd">
-                          python run_pipeline.py --root tests/fixtures/sample_bugs --import-root src --verbose
-                        </code>
-                      </div>
-                    </div>
-                    <p className="tr2-demo-note">
-                      The fixture contains <strong>6 intentional bugs</strong> across
-                      <code>src/calculator.py</code> and <code>src/string_utils.py</code>.
-                      Running the pipeline will detect them, group them, build LLM context,
-                      and write the full report to <code>backend/runs/</code>.
-                    </p>
-                  </div>
-                )}
-
-                {/* ── managed/GitHub Repos mode ── */}
-                {sourceMode === 'managed' && (
-                  <div className="tr2-managed-section">
-                    <div className="tr2-repo-form">
-                      
-                      {/* Visibility Dropdown */}
+                {/* ── Configuration forms ── */}
+                <div className="tr2-repo-form">
+                  {/* Branch Tab */}
+                  {configTab === 'branch' && (
+                    <>
+                      {/* Repository Dropdown */}
                       <div className="tr2-field">
-                        <label htmlFor="visibility" className="tr2-label">Visibility</label>
+                        <label htmlFor="repo-select" className="tr2-label">Repository</label>
                         <div className="tr2-select-wrap">
                           <select
-                            id="visibility"
+                            id="repo-select"
                             className="tr2-select"
-                            value={visibility}
-                            onChange={(e) => setVisibility(e.target.value)}
+                            value={selectedRepo?.id || ''}
+                            onChange={(e) => {
+                              if (e.target.value === 'add-new') {
+                                navigate('/repositories');
+                              } else {
+                                const repo = repositories.find(r => r.id === parseInt(e.target.value));
+                                setSelectedRepo(repo);
+                              }
+                            }}
+                            disabled={launching}
                           >
-                            <option value="public">Public</option>
-                            <option value="private">Private</option>
+                            <option value="">Select a repository...</option>
+                            {repositories.map(repo => (
+                              <option key={repo.id} value={repo.id}>
+                                {repo.full_name}
+                              </option>
+                            ))}
+                            <option value="add-new">➕ Add new repository</option>
                           </select>
                           <span className="tr2-chevron">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -402,149 +283,111 @@ export default function TriggerRun({ onStartRun }) {
                         </div>
                       </div>
 
-                      {/* Repository URL */}
-                      <div className="tr2-field">
-                        <label htmlFor="repo-url" className="tr2-label">GitHub Repository URL</label>
-                        <input
-                          id="repo-url"
-                          type="text"
-                          className={`tr2-input ${repoValidationErrors.url ? 'tr2-input-error' : ''}`}
-                          placeholder="https://github.com/owner/repository"
-                          value={repoFormData.url}
-                          onChange={(e) => handleRepoInputChange('url', e.target.value)}
-                          disabled={launching}
-                        />
-                        {repoValidationErrors.url && (
-                          <span className="tr2-error-text">{repoValidationErrors.url}</span>
-                        )}
-                      </div>
-
                       {/* Branch */}
                       <div className="tr2-field">
-                        <label htmlFor="repo-branch" className="tr2-label">Branch</label>
+                        <label htmlFor="branch-input" className="tr2-label">Branch</label>
                         <input
-                          id="repo-branch"
+                          id="branch-input"
                           type="text"
-                          className={`tr2-input ${repoValidationErrors.branch ? 'tr2-input-error' : ''}`}
-                          placeholder="main"
-                          value={repoFormData.branch}
-                          onChange={(e) => handleRepoInputChange('branch', e.target.value)}
+                          className="tr2-input"
+                          placeholder={selectedRepo?.default_branch || "main"}
+                          value={branchInput}
+                          onChange={(e) => setBranchInput(e.target.value)}
+                          disabled={launching || !selectedRepo}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* Pull Request Tab */}
+                  {configTab === 'pr' && (
+                    <>
+                      {/* PR URL */}
+                      <div className="tr2-field">
+                        <label htmlFor="pr-url" className="tr2-label">Pull Request URL</label>
+                        <input
+                          id="pr-url"
+                          type="text"
+                          className="tr2-input"
+                          placeholder="https://github.com/owner/repo/pull/123"
+                          value={prUrl}
+                          onChange={(e) => setPrUrl(e.target.value)}
                           disabled={launching}
                         />
-                        {repoValidationErrors.branch && (
-                          <span className="tr2-error-text">{repoValidationErrors.branch}</span>
-                        )}
-                      </div>
-
-                      {/* Personal Access Token (Private only) */}
-                      {visibility === 'private' && (
-                        <div className="tr2-field tr2-token-field">
-                          <label htmlFor="repo-token" className="tr2-label">
-                            GitHub Personal Access Token
-                            <span className="tr2-required-badge">Required</span>
-                          </label>
-                          <div className="tr2-token-input-wrap">
-                            <input
-                              id="repo-token"
-                              type={showToken ? 'text' : 'password'}
-                              className={`tr2-input ${repoValidationErrors.personal_access_token ? 'tr2-input-error' : ''}`}
-                              placeholder="ghp_xxxxxxxxxxxx"
-                              value={repoFormData.personal_access_token}
-                              onChange={(e) => handleRepoInputChange('personal_access_token', e.target.value)}
-                              disabled={launching}
-                              autoComplete="off"
-                            />
-                            <button
-                              type="button"
-                              className="tr2-token-toggle"
-                              onClick={() => setShowToken(!showToken)}
-                              title={showToken ? 'Hide token' : 'Show token'}
-                            >
-                              {showToken ? (
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                                  <line x1="1" y1="1" x2="23" y2="23"/>
-                                </svg>
-                              ) : (
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                  <circle cx="12" cy="12" r="3"/>
-                                </svg>
-                              )}
-                            </button>
-                          </div>
-                          {repoValidationErrors.personal_access_token && (
-                            <span className="tr2-error-text">{repoValidationErrors.personal_access_token}</span>
-                          )}
-                          <span className="tr2-hint">
-                            A token with repository read permissions is required. Your token is encrypted and stored securely.
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Success Banner */}
-                      {repoSuccess && (
-                        <div className="tr2-success-banner">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                            <polyline points="22 4 12 14.01 9 11.01"/>
-                          </svg>
-                          {repoSuccess}
-                        </div>
-                      )}
-
-                    </div>
-                  </div>
-                )}
-
-                {/* ── github mode fields ── */}
-                {sourceMode === 'github' && (
-                  <>
-                    <div className="tr2-field">
-                      <label className="tr2-label">Failing Test</label>
-                      <div className="tr2-select-wrap">
-                        <select
-                          className="tr2-select"
-                          value={selectedBug}
-                          onChange={e => setSelectedBug(e.target.value)}
-                        >
-                          {MOCK_BUGS.map(b => (
-                            <option key={b.id} value={b.id}>{b.title}</option>
-                          ))}
-                        </select>
-                        <span className="tr2-chevron">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        <span className="tr2-hint">
+                          The repository will be automatically added if it doesn't exist.
                         </span>
                       </div>
-                    </div>
+                    </>
+                  )}
 
-                    <div className="tr2-field">
-                      <label className="tr2-label">Bug Description (Optional)</label>
-                      <textarea
-                        className="tr2-textarea"
-                        rows={4}
-                        placeholder="Describe the expected vs actual behaviour…"
-                      />
-                    </div>
+                  {/* Commit Hash Tab */}
+                  {configTab === 'commit' && (
+                    <>
+                      {/* Repository Dropdown */}
+                      <div className="tr2-field">
+                        <label htmlFor="commit-repo-select" className="tr2-label">Repository</label>
+                        <div className="tr2-select-wrap">
+                          <select
+                            id="commit-repo-select"
+                            className="tr2-select"
+                            value={selectedRepo?.id || ''}
+                            onChange={(e) => {
+                              if (e.target.value === 'add-new') {
+                                navigate('/repositories');
+                              } else {
+                                const repo = repositories.find(r => r.id === parseInt(e.target.value));
+                                setSelectedRepo(repo);
+                              }
+                            }}
+                            disabled={launching}
+                          >
+                            <option value="">Select a repository...</option>
+                            {repositories.map(repo => (
+                              <option key={repo.id} value={repo.id}>
+                                {repo.full_name}
+                              </option>
+                            ))}
+                            <option value="add-new">➕ Add new repository</option>
+                          </select>
+                          <span className="tr2-chevron">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                          </span>
+                        </div>
+                      </div>
 
-                    {/* diagnostics strip */}
-                    <div className="tr2-diag" key={activeBug.id} style={{ '--sev-color': sevColor }}>
-                      <div className="tr2-diag-header">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                        Static Code Diagnostics
+                      {/* Commit Hash */}
+                      <div className="tr2-field">
+                        <label htmlFor="commit-hash" className="tr2-label">Commit Hash</label>
+                        <input
+                          id="commit-hash"
+                          type="text"
+                          className="tr2-input"
+                          placeholder="abc123... (full or short SHA)"
+                          value={commitHash}
+                          onChange={(e) => setCommitHash(e.target.value)}
+                          disabled={launching || !selectedRepo}
+                        />
+                        <span className="tr2-hint">
+                          The hash will be validated and expanded to the full 40-character SHA.
+                        </span>
                       </div>
-                      <div className="tr2-diag-badges">
-                        <span className={`tr2-badge tr2-sev-${activeBug.severity.toLowerCase()}`}>Severity: {activeBug.severity}</span>
-                        <span className={`tr2-badge tr2-comp-${activeBug.complexity.toLowerCase()}`}>Complexity: {activeBug.complexity}</span>
-                        <span className="tr2-badge tr2-badge-mono">Est. {activeBug.eta}</span>
-                      </div>
-                      <p className="tr2-diag-impact">
-                        <span className="tr2-diag-impact-lbl">Remediation Impact</span>
-                        {activeBug.impact}
-                      </p>
+                    </>
+                  )}
+
+                  {/* Success Banner */}
+                  {repoSuccess && (
+                    <div className="tr2-success-banner">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                      </svg>
+                      {repoSuccess}
                     </div>
-                  </>
-                )}
+                  )}
+                </div>
 
                 {/* ── error banner ── */}
                 {error && (
@@ -566,12 +409,9 @@ export default function TriggerRun({ onStartRun }) {
                     ) : (
                       <>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                        {sourceMode === 'demo' ? 'Run Demo Pipeline' : 'Run Pipeline'}
+                        Run Pipeline
                       </>
                     )}
-                  </button>
-                  <button type="button" className="tr2-btn-outline" onClick={handleSaveDraft}>
-                    {draftSaved ? 'Draft Saved' : 'Save Draft'}
                   </button>
                   <span className="tr2-kbd-hint"><kbd>⌘</kbd><kbd>↵</kbd></span>
                 </div>
@@ -603,9 +443,7 @@ export default function TriggerRun({ onStartRun }) {
             <div className="tr2-card tr2-card-blush">
               <div className="tr2-card-heading">
                 <span className="tr2-card-dot" />
-                <h2 className="tr2-card-title">
-                  {sourceMode === 'demo' ? 'Demo Fixture Profile' : 'Repository Profile'}
-                </h2>
+                <h2 className="tr2-card-title">Repository Profile</h2>
                 <span className={`tr2-status-pill ${repoStats.status === 'Healthy' ? 'pill-ok' : 'pill-warn'}`}>
                   <span className="tr2-status-dot" />{repoStats.status}
                 </span>
@@ -628,24 +466,14 @@ export default function TriggerRun({ onStartRun }) {
               <div className="tr2-settings">
                 {RUNTIME_SETTINGS.map(s => (
                   <div key={s.key} className="tr2-setting-row">
-                    <span className="tr2-setting-k">{s.key}</span>
-                    <span className="tr2-setting-v">{s.val}</span>
+                    <span className="tr2-setting-key">{s.key}</span>
+                    <span className="tr2-setting-val">{s.val}</span>
                   </div>
                 ))}
               </div>
-              <button className="tr2-settings-link">Modify Infrastructure Config →</button>
             </div>
           </div>
         </div>
-
-        {/* ── RUN HISTORY SECTION ── */}
-        <section className="tr2-history-section">
-          <RunHistory 
-            repositoryId={selectedRepo?.id} 
-            autoRefresh={true}
-            refreshInterval={5000}
-          />
-        </section>
       </div>
     </div>
   );
