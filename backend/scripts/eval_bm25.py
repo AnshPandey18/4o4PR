@@ -50,7 +50,7 @@ def evaluate_fixture(
     # Build chunks
     print("Building BM25 chunks...")
     all_chunks = build_chunks(index_path, fixture_root)
-    searchable_chunks = get_searchable_chunks(all_chunks)
+    searchable_chunks = get_searchable_chunks(all_chunks, include_tests=False)  # ITEM 2.3: Explicit filter
     print(f"  Total chunks: {len(all_chunks)}")
     print(f"  Searchable chunks: {len(searchable_chunks)}")
     

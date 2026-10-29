@@ -15,7 +15,7 @@ from retrieval.tokenizer import tokenize
 
 # Configuration
 CLASS_CHUNK = "skeleton"  # Only name + signature + docstring for classes
-INCLUDE_TEST_CHUNKS = False  # Exclude test symbols from search by default
+# ITEM 2.1: Build all chunks including tests, filter at query time
 
 
 class StaleIndexError(Exception):
@@ -105,30 +105,38 @@ def build_chunks(
     # Handle both dict and array formats for symbols
     symbols_raw = index_data.get('symbols', {})
     if isinstance(symbols_raw, list):
-        # Convert array format [{"symbol_id": ..., ...}] to dict {"symbol_id": {...}}
-        symbols_dict = {item['symbol_id']: item for item in symbols_raw}
+        # Convert array format [{"id": ..., ...}] to dict {"id": {...}}
+        # FIX 4: Support both 'id' and 'symbol_id'
+        symbols_dict = {}
+        for item in symbols_raw:
+            sid = item.get('id', item.get('symbol_id'))
+            if sid:
+                symbols_dict[sid] = item
     else:
         # Already a dict
         symbols_dict = symbols_raw
     
     for symbol_id, symbol in symbols_dict.items():
-        # Add symbol_id to the symbol dict for processing
-        symbol_with_id = {**symbol, 'symbol_id': symbol_id}
+        # Add symbol_id to the symbol dict for processing (ensure it has an id field)
+        symbol_with_id = {**symbol, 'symbol_id': symbol_id, 'id': symbol_id}
         kind = symbol['kind']
         
-        # Only chunk functions, methods, constants
-        if kind not in ('function', 'method', 'constant'):
+        # Build chunks for all symbol types
+        if kind == 'class':
             # Classes get skeleton chunks
-            if kind == 'class':
-                chunk = _build_class_skeleton_chunk(symbol_with_id, repo_root)
-                if chunk:
-                    chunks.append(chunk)
-            continue
-        
-        # Build regular chunk
-        chunk = _build_chunk(symbol_with_id, repo_root)
-        if chunk:
-            chunks.append(chunk)
+            chunk = _build_class_skeleton_chunk(symbol_with_id, repo_root)
+            if chunk:
+                chunks.append(chunk)
+        elif kind == 'module':
+            # Modules get skeleton chunks
+            chunk = _build_module_chunk(symbol_with_id, repo_root)
+            if chunk:
+                chunks.append(chunk)
+        elif kind in ('function', 'method', 'constant'):
+            # Build regular chunk
+            chunk = _build_chunk(symbol_with_id, repo_root)
+            if chunk:
+                chunks.append(chunk)
     
     return chunks
 
@@ -265,16 +273,71 @@ def _build_class_skeleton_chunk(symbol: Dict, repo_root: Path) -> Optional[Chunk
     return chunk
 
 
-def get_searchable_chunks(chunks: List[Chunk]) -> List[Chunk]:
-    """Filter chunks to get searchable ones (non-test, non-empty).
+def _build_module_chunk(symbol: Dict, repo_root: Path) -> Optional[Chunk]:
+    """Build a chunk for a module (name + docstring only).
+    
+    Args:
+        symbol: Module symbol dictionary from index
+        repo_root: Repository root path
+        
+    Returns:
+        Chunk object or None if chunk is empty
+    """
+    symbol_id = symbol['symbol_id']
+    file_path = symbol['file']
+    line_start = symbol.get('line_start', 1)
+    line_end = symbol.get('line_end', 1)
+    is_test = symbol.get('is_test', False)
+    
+    # Build module text (name + docstring)
+    text_parts = []
+    
+    # Add module name
+    text_parts.append(symbol['name'])
+    
+    # Add docstring if present
+    if symbol.get('docstring'):
+        text_parts.append(symbol['docstring'])
+    
+    # Tokenize
+    chunk_text = ' '.join(text_parts)
+    tokens = tokenize(chunk_text)
+    
+    # Compute term frequencies
+    term_freq = {}
+    for token in tokens:
+        term_freq[token] = term_freq.get(token, 0) + 1
+    
+    # Skip chunks with zero tokens
+    if not term_freq:
+        return None
+    
+    # Create chunk
+    chunk = Chunk(
+        id=symbol_id,
+        kind='module',
+        file=file_path,
+        line_start=line_start,
+        line_end=line_end,
+        is_test=is_test,
+        token_count=len(tokens),
+        term_frequencies=dict(sorted(term_freq.items()))
+    )
+    
+    return chunk
+
+
+def get_searchable_chunks(chunks: List[Chunk], include_tests: bool = False) -> List[Chunk]:
+    """Filter chunks to get searchable ones.
     
     Args:
         chunks: List of all chunks
+        include_tests: Whether to include test symbols (default: False for production code only)
         
     Returns:
         List of chunks that should be searchable
     """
-    if INCLUDE_TEST_CHUNKS:
+    if include_tests:
         return [c for c in chunks if c.token_count > 0]
     else:
         return [c for c in chunks if c.token_count > 0 and not c.is_test]

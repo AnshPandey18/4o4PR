@@ -123,7 +123,7 @@ def main():
     try:
         logger.info("Building chunks from index...")
         chunks = build_chunks(index_path, repo_root)
-        searchable_chunks = get_searchable_chunks(chunks)
+        searchable_chunks = get_searchable_chunks(chunks, include_tests=False)  # ITEM 2.3: Explicit filter
         logger.info(f"Built {len(searchable_chunks)} searchable chunks from {len(chunks)} total chunks")
     except Exception as e:
         logger.error(f"Failed to build chunks: {e}")
