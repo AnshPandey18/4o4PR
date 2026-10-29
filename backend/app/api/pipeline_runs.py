@@ -478,7 +478,8 @@ def trigger_pipeline_run(
         repo.id,
         new_run.id,  # Using database ID
         repo_url,
-        branch,
+        trigger_req.input_mode,  # Pass input_mode
+        trigger_req.input_ref,   # Pass input_ref (branch, PR#, or commit SHA)
         pat,
     )
     

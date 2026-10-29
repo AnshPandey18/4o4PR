@@ -203,9 +203,13 @@ class RepoIndexer:
                 symbols.update(file_symbols)
             except SyntaxError as e:
                 logger.warning(f"Syntax error in {rel_path}: {e}")
+                # S2-G: Structured parse error (D4)
                 parse_errors.append(ParseError(
                     file=rel_path,
+                    stage="parse",
                     line=e.lineno or 0,
+                    column=e.offset,
+                    reason=type(e).__name__,
                     message=str(e)
                 ))
                 # Still record the file as unparseable (TASK 6)
@@ -219,9 +223,13 @@ class RepoIndexer:
                 )
             except Exception as e:
                 logger.error(f"Error parsing {rel_path}: {e}")
+                # S2-G: Read error (D4)
                 parse_errors.append(ParseError(
                     file=rel_path,
+                    stage="read",
                     line=0,
+                    column=None,
+                    reason="encoding or IO error",
                     message=f"Unexpected error: {str(e)}"
                 ))
         
@@ -232,6 +240,9 @@ class RepoIndexer:
         
         # TASK 5: Resolve decorator targets
         self._resolve_decorators(symbols, files)
+        
+        # S2-B: Extract module-level calls before building call graph
+        module_calls = self._extract_module_level_calls(files, symbols)
         
         # TASK 5: Build references mapping (FIX BUG 1: Pass files for import resolution)
         self._extract_references(symbols, files)
@@ -247,6 +258,101 @@ class RepoIndexer:
         )
         logger.info(f"Mapped {len(test_to_source)} tests to source functions")
         
+        # S2-D: Build new structure (D4) - symbols, references, failures
+        symbols_list = []
+        references_list = []
+        
+        # S2-F: Create module records (D4)
+        for rel_path, file_info in files.items():
+            if file_info.parse_ok and file_info.module:
+                module_sym = {
+                    'symbol_id': f"{rel_path}::<module>",
+                    'kind': 'module',
+                    'name': file_info.module.split('.')[-1] if file_info.module else rel_path,
+                    'qualified_name': file_info.module or rel_path,
+                    'file': rel_path,
+                    'line_start': 1,
+                    'line_end': file_info.lines,
+                    'docstring': file_info.docstring
+                }
+                symbols_list.append(module_sym)
+        
+        # Add all other symbols
+        for sym_id, sym in symbols.items():
+            sym_dict = {
+                'symbol_id': sym_id,
+                'kind': sym.kind,
+                'name': sym.name,
+                'qualified_name': sym.qualified_name,  # S2-A (D1)
+                'file': sym.file,
+                'line_start': sym.line_start,
+                'line_end': sym.line_end,
+                'signature': sym.signature,
+                'decorators': sym.decorators,
+                'decorator_targets': sym.decorator_targets,
+                'docstring': sym.docstring,
+                'parent_class': sym.parent_class,
+                'is_test': sym.is_test,
+                'is_async': sym.is_async,  # S2-C (D3)
+                'unresolved_calls': sym.unresolved_calls,
+                'unresolved': sym.unresolved,
+                'builtin_calls': sorted(sym.builtin_calls),
+                'line_count': sym.line_count,
+                'char_count': sym.char_count,
+                'approx_tokens': sym.approx_tokens,
+                'value_preview': sym.value_preview,
+                'references': sym.references,
+                'children': sym.children,
+                'bases': sym.bases,
+                'bases_unresolved': sym.bases_unresolved,
+                'attr_types': sym.attr_types
+            }
+            symbols_list.append(sym_dict)
+        
+        # S2-D: Build references list (calls + imports)
+        # Add call references with line numbers (S2-B, S2-E)
+        for caller_id, callee_ids in call_graph.get('callees', {}).items():
+            for callee_id in callee_ids:
+                # Get line number from call tracking (will add in _build_call_graph)
+                call_ref = {
+                    'kind': 'call',
+                    'caller': caller_id,
+                    'callee': callee_id,
+                    'file': caller_id.split('::')[0] if '::' in caller_id else '',
+                    'line': 0  # Line tracking to be added in _build_call_graph update
+                }
+                references_list.append(call_ref)
+        
+        # Add module-level call references (S2-B)
+        references_list.extend(module_calls)
+        
+        # Add import references
+        for rel_path, file_info in files.items():
+            for imp in file_info.imports:
+                import_ref = {
+                    'kind': 'import' if imp['style'] == 'import' else 'import_from',
+                    'file': rel_path,
+                    'line': imp['line'],
+                    'module': imp['module'],
+                    'names': imp['names'],
+                    'level': imp['level'],
+                    'resolved_file': imp.get('resolved_file')
+                }
+                references_list.append(import_ref)
+        
+        # S2-G: Build failures list (D4)
+        failures_list = [
+            {
+                'file': err.file,
+                'stage': err.stage,
+                'line': err.line,
+                'column': err.column,
+                'reason': err.reason,
+                'message': err.message
+            }
+            for err in parse_errors
+        ]
+        
         # Create index data
         index_data = IndexData(
             schema_version=self.schema_version,
@@ -255,12 +361,14 @@ class RepoIndexer:
             # FIX C5: Use Z suffix OR +00:00 offset, not both
             generated_at=now_utc.isoformat().replace('+00:00', 'Z'),
             import_roots=self.import_roots,
-            files=files,
-            symbols=symbols,
-            call_graph=call_graph,
+            symbols=symbols_list,  # S2-D: New list structure
+            references=references_list,  # S2-D: New list structure
+            failures=failures_list,  # S2-G: New list structure
+            files=files,  # Keep for compatibility
+            call_graph=call_graph,  # Keep for graph walk
             test_to_source=test_to_source,
             test_to_source_transitive=test_to_source_transitive,
-            parse_errors=parse_errors
+            parse_errors=parse_errors  # Keep for compatibility
         )
         
         # Write to cache if available
@@ -548,6 +656,7 @@ class RepoIndexer:
                 symbol_id=symbol_id,
                 kind="constant",
                 name=name,
+                qualified_name=name,  # S2-A: Constants have simple qualified name (D1)
                 file=file_path,
                 line_start=node.lineno,
                 line_end=node.end_lineno or node.lineno,
@@ -555,6 +664,7 @@ class RepoIndexer:
                 docstring=None,
                 parent_class=None,
                 is_test=kind == "test",
+                is_async=False,  # S2-C: Constants are never async (D3)
                 value_preview=value_preview,
                 line_count=line_count,
                 char_count=char_count,
@@ -647,6 +757,7 @@ class RepoIndexer:
             symbol_id=symbol_id,
             kind="class",
             name=node.name,
+            qualified_name=node.name,  # S2-A: Classes have simple qualified name (D1)
             file=file_path,
             line_start=line_start,
             line_end=line_end,
@@ -655,6 +766,7 @@ class RepoIndexer:
             docstring=docstring,
             parent_class=None,
             is_test=kind == "test",
+            is_async=False,  # S2-C: Classes are never async (D3)
             line_count=line_count,
             char_count=char_count,
             approx_tokens=approx_tokens,
@@ -719,6 +831,9 @@ class RepoIndexer:
         # Check if it's a test function
         is_test = kind == "test" and node.name.startswith("test_")
         
+        # S2-C: Check if it's async (D3)
+        is_async = isinstance(node, ast.AsyncFunctionDef)
+        
         # TASK 6: Calculate metrics (FIX C4 & C5)
         line_count = line_end - line_start + 1
         func_source = '\n'.join(source_lines[line_start - 1:line_end])
@@ -729,6 +844,7 @@ class RepoIndexer:
             symbol_id=symbol_id,
             kind="method" if parent_class else "function",
             name=node.name,
+            qualified_name=qualified_name,  # S2-A: Added (D1)
             file=file_path,
             line_start=line_start,
             line_end=line_end,
@@ -737,6 +853,7 @@ class RepoIndexer:
             docstring=docstring,
             parent_class=parent_class,
             is_test=is_test,
+            is_async=is_async,  # S2-C: Added (D3)
             line_count=line_count,
             char_count=char_count,
             approx_tokens=approx_tokens
@@ -1172,6 +1289,64 @@ class RepoIndexer:
                         refs.append(const_id)
         
         return refs
+    
+    def _extract_module_level_calls(
+        self,
+        files: Dict[str, FileInfo],
+        symbols: Dict[str, SymbolInfo]
+    ) -> List[Dict[str, Any]]:
+        """Extract calls at module level (S2-B: D2).
+        
+        Args:
+            files: Dict of FileInfo
+            symbols: Dict of SymbolInfo
+            
+        Returns:
+            List of call reference dicts with caller="<module>"
+        """
+        module_calls = []
+        
+        for rel_path in files.keys():
+            if rel_path not in self._ast_cache:
+                continue
+            
+            tree, _ = self._ast_cache[rel_path]
+            file_info = files[rel_path]
+            
+            # Walk module body (not inside any function/class)
+            for stmt in tree.body:
+                # Skip function/class definitions
+                if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    continue
+                
+                # Find calls in this statement
+                for node in ast.walk(stmt):
+                    if isinstance(node, ast.Call):
+                        # Extract callee expression
+                        callee_expr = ast.unparse(node)
+                        
+                        # Try to resolve
+                        callee_id = None
+                        if isinstance(node.func, ast.Name):
+                            # Simple call: func()
+                            func_name = node.func.id
+                            # Check same file
+                            candidate = f"{rel_path}::{func_name}"
+                            if candidate in symbols:
+                                callee_id = candidate
+                        elif isinstance(node.func, ast.Attribute):
+                            # Method call: obj.method()
+                            callee_expr = ast.unparse(node.func)
+                        
+                        module_calls.append({
+                            'kind': 'call',
+                            'caller': '<module>',
+                            'callee': callee_id or callee_expr,
+                            'file': rel_path,
+                            'line': node.lineno
+                        })
+        
+        return module_calls
     
     def _build_call_graph(
         self,

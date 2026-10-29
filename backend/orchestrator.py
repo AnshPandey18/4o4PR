@@ -2,14 +2,19 @@
 
 This orchestrator combines:
 1. Complete standalone pipeline from standalone_orchestrator.py
-2. Database operations and git repository cloning from orchestrator_db.py
+2. Database operations and commit extraction from GitHub
+
+Key Features:
+- Downloads single commit snapshots via GitHub ZIP endpoint (no git history)
+- Supports three input modes: branch (latest commit), PR (head commit), commit (specific SHA)
+- Sequential pipeline execution: Indexer → Detector → Grouper → Context → Patches
 
 Supports two modes:
 A. Standalone mode: Run pipeline on local repository
    python orchestrator.py --root /path/to/project
 
 B. Database mode: Run pipeline with database integration
-   python orchestrator.py --run-id run_20261009_123456
+   python orchestrator.py --run-id <database_id>
    python orchestrator.py --repository-onboarding --user-id 1 --repo-url https://github.com/owner/repo
 
 Usage examples:
@@ -23,7 +28,7 @@ Usage examples:
     python orchestrator.py --root /path/to/project --skip-patches
     
     # Database mode - run pipeline for existing run
-    python orchestrator.py --run-id run_20261009_123456
+    python orchestrator.py --run-id 123
     
     # Database mode - onboard repository
     python orchestrator.py --repository-onboarding \\
@@ -260,7 +265,10 @@ class StandaloneOrchestrator:
         
         completed_stages = []
         
-        # Step 1: Repository Indexer
+        # Note: All steps run sequentially. Each step must complete successfully
+        # before the next step begins. If any step fails, the pipeline stops.
+        
+        # Step 1: Repository Indexer (runs first)
         current_stage_idx = 0
         if stop_stage_index is None or current_stage_idx <= stop_stage_index:
             logger.info("STEP 1: Repository Indexer")
@@ -277,7 +285,7 @@ class StandaloneOrchestrator:
             if stop_after == "indexer":
                 return self._write_stop_marker(completed_stages, stop_after)
         
-        # Step 2: Bug Detector
+        # Step 2: Bug Detector (runs only after indexer completes)
         current_stage_idx = 1
         if stop_stage_index is None or current_stage_idx <= stop_stage_index:
             logger.info("STEP 2: Bug Detector")
@@ -726,10 +734,10 @@ class OrchestratorDB:
                 print("   ✓ No existing repository found")
             print()
 
-            # Step 3: Clone (or reuse an existing clone)
-            print("🔄 Step 3: Cloning repository...")
+            # Step 3: Download commit ZIP (instead of cloning)
+            print("🔄 Step 3: Downloading commit...")
             try:
-                clone_metadata = self._clone_repository(repo, repo_url, branch, pat)
+                clone_metadata = self._download_commit_zip(repo, repo_url, "branch", branch, pat)
             except WorkspaceBusyError as busy_error:
                 return {
                     "status": "FAILED",
@@ -744,8 +752,8 @@ class OrchestratorDB:
 
             # Step 4: Persist the pipeline run record
             print("💾 Step 4: Persisting pipeline run...")
-            run = self._create_pipeline_run(repo, run_id)
-            print(f"   ✓ Pipeline run: {run.run_id}")
+            run = self._create_pipeline_run(repo, run_id, input_mode="branch", input_ref=branch)
+            print(f"   ✓ Pipeline run: {run.id}")
             print()
 
             print("=" * 60)
@@ -757,7 +765,7 @@ class OrchestratorDB:
                 "status": "COMPLETED",
                 "stage": "PERSISTING",
                 "repository_id": repo.id,
-                "run_id": run.run_id,
+                "run_id": run.id,
                 "clone_path": repo.clone_path,
                 "clone_status": repo.clone_status,
                 "commit_sha": repo.commit_sha,
@@ -768,7 +776,6 @@ class OrchestratorDB:
                 ),
             }
 
-            # Step 5: Execute the existing pipeline for this run
             if execute_pipeline:
                 self.run = run
                 self.repo = repo
@@ -837,13 +844,13 @@ class OrchestratorDB:
         repo, already_registered = self._resolve_repository(
             repo_url, branch, visibility, pat, repository_id
         )
-        run = self._create_pipeline_run(repo, run_id)
+        run = self._create_pipeline_run(repo, run_id, input_mode="branch", input_ref=branch)
 
         return {
             "status": "COMPLETED",
             "stage": "PERSISTING",
             "repository_id": repo.id,
-            "run_id": run.run_id,
+            "run_id": run.id,
             "clone_status": repo.clone_status,
             "message": (
                 "Repository already registered"
@@ -857,11 +864,12 @@ class OrchestratorDB:
         repository_id: int,
         run_id: int,  # Changed to int (database ID)
         repo_url: str,
-        branch: str = "main",
+        input_mode: str = "branch",
+        input_ref: str = "main",
         pat: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Clone the registered repository and execute its pipeline run.
+        Download the registered repository commit and execute its pipeline run.
 
         This is the background half of the onboarding workflow: it uses the
         records that were already persisted by ``register_repository``.
@@ -870,7 +878,8 @@ class OrchestratorDB:
             repository_id: Database ID of the repository
             run_id: Database ID of the pipeline run (not the run_id string)
             repo_url: Repository URL
-            branch: Branch to clone
+            input_mode: "branch", "pr", or "commit"
+            input_ref: Branch name, PR number, or commit SHA
             pat: Personal access token
 
         Returns:
@@ -899,9 +908,14 @@ class OrchestratorDB:
 
             self.repo = repo
             self.run = run
+            
+            # Update run with input configuration
+            run.input_mode = input_mode
+            run.input_ref = input_ref
+            self.db.commit()
 
             try:
-                self._clone_repository(repo, repo_url, branch, pat)
+                self._download_commit_zip(repo, repo_url, input_mode, input_ref, pat)
             except WorkspaceBusyError as busy_error:
                 run.status = "failed"
                 run.error_message = self._sanitize_error(str(busy_error))
@@ -909,7 +923,7 @@ class OrchestratorDB:
                 self.db.commit()
                 return {
                     "status": "FAILED",
-                    "stage": "CLONING",
+                    "stage": "DOWNLOADING",
                     "repository_id": repo.id,
                     "run_id": str(run.id),  # Return database ID as string
                     "error": run.error_message,
@@ -922,7 +936,7 @@ class OrchestratorDB:
                 self.db.commit()
                 return {
                     "status": "FAILED",
-                    "stage": "CLONING",
+                    "stage": "DOWNLOADING",
                     "repository_id": repo.id,
                     "run_id": str(run.id),  # Return database ID as string
                     "error": run.error_message,
@@ -945,57 +959,168 @@ class OrchestratorDB:
             if self._owns_session:
                 self.db.close()
 
-    def _clone_repository(
+    def _download_commit_zip(
         self,
         repo: Repository,
         repo_url: str,
-        branch: str,
+        input_mode: str,
+        input_ref: str,
         pat: Optional[str],
     ) -> Dict[str, Any]:
         """
-        Clone the repository (or reuse an existing clone) and persist the
-        clone metadata on the repository record.
+        Download and extract a single commit as a ZIP file from GitHub.
+        
+        Supports three modes:
+        - branch: Downloads latest commit of specified branch
+        - pr: Downloads PR head commit
+        - commit: Downloads specific commit SHA
+        
+        Args:
+            repo: Repository record
+            repo_url: GitHub repository URL
+            input_mode: "branch", "pr", or "commit"
+            input_ref: Branch name, PR number, or commit SHA
+            pat: Personal access token
+            
+        Returns:
+            Dictionary with download metadata
         """
-        if self._can_reuse_clone(repo, branch):
-            print(f"   ✓ Reusing existing clone: {repo.clone_path}")
-            return {
-                "clone_path": repo.clone_path,
-                "clone_size_mb": 0.0,  # Clone size not stored in DB, returned for logging only
-                "clone_duration_seconds": 0.0,
-                "commit_sha": repo.commit_sha,
-            }
-
+        import requests
+        import zipfile
+        import tempfile
+        import shutil
+        from pathlib import Path
+        
+        start_time = datetime.now(timezone.utc)
+        
+        # Parse owner/repo from URL
         github_client = GitHubClient(personal_access_token=pat)
-        clone_metadata = github_client.clone_repository(
-            repo_url=repo_url,
-            user_id=self.user_id,
-            repo_id=repo.id,
-            branch=branch,
-            use_cache=False,  # Force fresh clone for onboarding
-        )
-
-        # Update repository with clone info
-        repo.clone_path = clone_metadata["clone_path"]
+        parts = repo_url.rstrip('/').split('/')
+        owner = parts[-2]
+        repo_name = parts[-1].replace('.git', '')
+        
+        # Determine download URL based on input mode
+        if input_mode == "branch":
+            # https://github.com/OWNER/REPO/archive/refs/heads/BRANCH.zip
+            zip_url = f"https://github.com/{owner}/{repo_name}/archive/refs/heads/{input_ref}.zip"
+            print(f"   📥 Downloading latest commit from branch: {input_ref}")
+        elif input_mode == "pr":
+            # https://github.com/OWNER/REPO/archive/refs/pull/PR_NUMBER/head.zip
+            zip_url = f"https://github.com/{owner}/{repo_name}/archive/refs/pull/{input_ref}/head.zip"
+            print(f"   📥 Downloading PR #{input_ref} head commit")
+        elif input_mode == "commit":
+            # https://github.com/OWNER/REPO/archive/COMMIT_SHA.zip
+            zip_url = f"https://github.com/{owner}/{repo_name}/archive/{input_ref}.zip"
+            print(f"   📥 Downloading commit: {input_ref}")
+        else:
+            raise ValueError(f"Unsupported input_mode: {input_mode}")
+        
+        # Prepare headers
+        headers = {}
+        if pat:
+            headers['Authorization'] = f'token {pat}'
+        
+        # Create download directory in backend/repos/
+        repos_dir = BACKEND_DIR / "repos"
+        repos_dir.mkdir(parents=True, exist_ok=True)
+        extract_path = repos_dir / f"user_{self.user_id}" / f"{owner}_{repo_name}"
+        
+        # Remove existing extraction if present
+        if extract_path.exists():
+            print(f"   🗑️  Removing existing extraction: {extract_path}")
+            shutil.rmtree(extract_path)
+        
+        extract_path.mkdir(parents=True, exist_ok=True)
+        
+        # Download ZIP file
+        print(f"   ⬇️  Downloading from: {zip_url}")
+        try:
+            response = requests.get(zip_url, headers=headers, stream=True, timeout=300)
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            raise RuntimeError(f"Failed to download commit ZIP: {e}")
+        
+        # Save to temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as tmp_file:
+            tmp_path = tmp_file.name
+            total_size = 0
+            for chunk in response.iter_content(chunk_size=8192):
+                tmp_file.write(chunk)
+                total_size += len(chunk)
+        
+        print(f"   💾 Downloaded: {total_size / (1024 * 1024):.2f} MB")
+        
+        # Extract ZIP file
+        print(f"   📦 Extracting to: {extract_path}")
+        try:
+            with zipfile.ZipFile(tmp_path, 'r') as zip_ref:
+                zip_ref.extractall(extract_path)
+        finally:
+            # Delete ZIP file
+            Path(tmp_path).unlink(missing_ok=True)
+            print(f"   🗑️  Deleted temporary ZIP file")
+        
+        # GitHub ZIP archives extract to a subdirectory named {repo}-{ref}
+        # Move contents up one level
+        extracted_dirs = list(extract_path.iterdir())
+        if len(extracted_dirs) == 1 and extracted_dirs[0].is_dir():
+            temp_dir = extract_path.parent / f"_temp_{repo.id}"
+            extracted_dirs[0].rename(temp_dir)
+            shutil.rmtree(extract_path)
+            temp_dir.rename(extract_path)
+            print(f"   ✅ Moved contents from subdirectory")
+        
+        # Get commit SHA from the extracted directory (if available)
+        commit_sha = None
+        if input_mode == "commit":
+            commit_sha = input_ref
+        else:
+            # Try to get commit SHA from GitHub API
+            try:
+                if input_mode == "branch":
+                    api_url = f"https://api.github.com/repos/{owner}/{repo_name}/branches/{input_ref}"
+                elif input_mode == "pr":
+                    api_url = f"https://api.github.com/repos/{owner}/{repo_name}/pulls/{input_ref}"
+                
+                api_response = requests.get(api_url, headers=headers, timeout=30)
+                if api_response.status_code == 200:
+                    data = api_response.json()
+                    if input_mode == "branch":
+                        commit_sha = data.get('commit', {}).get('sha')
+                    elif input_mode == "pr":
+                        commit_sha = data.get('head', {}).get('sha')
+            except Exception as e:
+                print(f"   ⚠️  Could not fetch commit SHA from API: {e}")
+        
+        # Update repository with download info
+        repo.clone_path = str(extract_path)
         repo.clone_status = "cloned"
         repo.cloned_at = _utcnow()
-        repo.commit_sha = clone_metadata.get("commit_sha")
-        # Note: branch is tracked per-run via PipelineRun.input_ref, not on repository
+        repo.commit_sha = commit_sha
         self.db.commit()
         self.db.refresh(repo)
-
-        print(f"   ✓ Clone completed: {clone_metadata['clone_path']}")
-        print(f"   ✓ Size: {float(clone_metadata['clone_size_mb']):.2f} MB")
-        print(f"   ✓ Duration: {clone_metadata['clone_duration_seconds']:.1f}s")
-        if repo.commit_sha:
-            print(f"   ✓ Commit: {repo.commit_sha[:12]}")
-
-        return clone_metadata
+        
+        end_time = datetime.now(timezone.utc)
+        duration = (end_time - start_time).total_seconds()
+        
+        print(f"   ✓ Extraction completed: {extract_path}")
+        print(f"   ✓ Size: {total_size / (1024 * 1024):.2f} MB")
+        print(f"   ✓ Duration: {duration:.1f}s")
+        if commit_sha:
+            print(f"   ✓ Commit: {commit_sha[:12]}")
+        
+        return {
+            "clone_path": str(extract_path),
+            "clone_size_mb": total_size / (1024 * 1024),
+            "clone_duration_seconds": duration,
+            "commit_sha": commit_sha,
+        }
 
     # ========================================================================
     # Pipeline Execution
     # ========================================================================
 
-    def execute_run(self, run_id: str) -> int:
+    def execute_run(self, run_db_id: int) -> int:
         """
         Load a pipeline run from the database and execute it.
 
@@ -1003,34 +1128,36 @@ class OrchestratorDB:
         persisted records are the single source of truth for execution.
 
         Args:
-            run_id: Pipeline run identifier
+            run_db_id: Pipeline run database ID (integer primary key)
 
         Returns:
             Exit code (0 = success, 1 = failure)
         """
-        self.run_id = run_id
         try:
-            if not self.load_run_config():
+            if not self.load_run_config(run_db_id):
                 return 1
             return self.run_pipeline()
         finally:
             if self._owns_session:
                 self.db.close()
 
-    def load_run_config(self) -> bool:
+    def load_run_config(self, run_db_id: int) -> bool:
         """
         Load pipeline run configuration from database.
+
+        Args:
+            run_db_id: Pipeline run database ID
 
         Returns:
             True if successful, False if run not found
         """
-        # Load pipeline run
+        # Load pipeline run by database ID
         self.run = self.db.query(PipelineRun).filter(
-            PipelineRun.run_id == self.run_id
+            PipelineRun.id == run_db_id
         ).first()
 
         if not self.run:
-            print(f"❌ Pipeline run not found: {self.run_id}")
+            print(f"❌ Pipeline run not found: ID {run_db_id}")
             return False
 
         # Load repository
@@ -1136,11 +1263,16 @@ class OrchestratorDB:
 
             # Update status to running
             self.update_status("running")
+            
+            # Store commit SHA from repository
+            if self.repo.commit_sha:
+                self.run.commit_sha = self.repo.commit_sha
+                self.db.commit()
 
             # Validate clone path exists
             if not self.repo.clone_path or not os.path.exists(self.repo.clone_path):
                 raise PipelineExecutionError(
-                    "Clone path does not exist. The repository must be cloned before the pipeline runs."
+                    "Clone path does not exist. The repository commit must be downloaded before the pipeline runs."
                 )
 
             output_dir = self._resolve_output_dir(self.run)
@@ -1380,12 +1512,24 @@ class OrchestratorDB:
 
         return new_repo
 
-    def _create_pipeline_run(self, repo: Repository, run_id: Optional[str] = None) -> PipelineRun:
+    def _create_pipeline_run(
+        self, 
+        repo: Repository, 
+        run_id: Optional[str] = None,
+        input_mode: str = "branch",
+        input_ref: str = "main"
+    ) -> PipelineRun:
         """
         Create the pipeline run record for a repository.
 
         An already active run for the same repository is reused so that a
         duplicate submission cannot start a conflicting operation.
+        
+        Args:
+            repo: Repository record
+            run_id: Optional run ID string (deprecated, not used)
+            input_mode: Input mode ("branch", "pr", or "commit")
+            input_ref: Branch name, PR number, or commit SHA
         """
         active_run = self.db.query(PipelineRun).filter(
             PipelineRun.repository_id == repo.id,
@@ -1396,14 +1540,11 @@ class OrchestratorDB:
             print(f"   ⚠ Active pipeline run already exists: {active_run.id}")
             return active_run
 
-        if not run_id:
-            run_id = self.generate_run_id()
-
         new_run = PipelineRun(
             repository_id=repo.id,
             status="queued",
-            input_mode="branch",  # Default to branch mode
-            input_ref=branch,
+            input_mode=input_mode,
+            input_ref=input_ref,
         )
 
         self.db.add(new_run)
@@ -1483,13 +1624,14 @@ def execute_onboarding_task(
     repository_id: int,
     run_id: int,  # Changed to int (database ID)
     repo_url: str,
-    branch: str = "main",
+    input_mode: str = "branch",
+    input_ref: str = "main",
     pat: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Background task that clones a repository and executes its pipeline run.
+    Background task that downloads a repository commit and executes its pipeline run.
 
-    This is the worker used by the API so that the clone and the pipeline
+    This is the worker used by the API so that the download and the pipeline
     execution never block the request/event loop. Every failure is recorded on
     the pipeline run row so the frontend always observes the real state.
 
@@ -1498,7 +1640,8 @@ def execute_onboarding_task(
         repository_id: Database ID of the repository
         run_id: Database ID of the pipeline run (not the run_id string)
         repo_url: Repository URL
-        branch: Branch to clone
+        input_mode: "branch", "pr", or "commit"
+        input_ref: Branch name, PR number, or commit SHA
         pat: Personal access token
 
     Returns:
@@ -1510,7 +1653,8 @@ def execute_onboarding_task(
     print(f"   Repository ID: {repository_id}")
     print(f"   Run ID: {run_id}")
     print(f"   Repo URL: {repo_url}")
-    print(f"   Branch: {branch}")
+    print(f"   Input Mode: {input_mode}")
+    print(f"   Input Ref: {input_ref}")
     print(f"=" * 80)
     
     if not DB_AVAILABLE:
@@ -1529,7 +1673,8 @@ def execute_onboarding_task(
             repository_id=repository_id,
             run_id=run_id,
             repo_url=repo_url,
-            branch=branch,
+            input_mode=input_mode,
+            input_ref=input_ref,
             pat=pat,
         )
         print(f"✅ Onboarding completed: {result.get('status')}")
@@ -1568,7 +1713,7 @@ Examples:
   python orchestrator.py --root /path/to/project --skip-patches
   
   # Database mode - run pipeline for existing run
-  python orchestrator.py --run-id run_20261009_123456
+  python orchestrator.py --run-id 123
   
   # Database mode - onboard (clone and register) a public repository
   python orchestrator.py --repository-onboarding \\
@@ -1596,7 +1741,7 @@ Examples:
     parser.add_argument(
         "--run-id",
         type=str,
-        help="[DB mode] Pipeline run identifier (for full pipeline execution)"
+        help="[DB mode] Pipeline run database ID (for full pipeline execution)"
     )
     
     # Standalone mode arguments
@@ -1765,16 +1910,11 @@ Examples:
 
         # Pipeline execution mode
         elif args.run_id:
-            orchestrator = OrchestratorDB(run_id=args.run_id)
+            run_db_id = int(args.run_id)
+            orchestrator = OrchestratorDB()
 
-            # Load configuration from database
-            if not orchestrator.load_run_config():
-                return 1
-
-            print()
-
-            # Run pipeline
-            return orchestrator.run_pipeline()
+            # Run pipeline using database ID
+            return orchestrator.execute_run(run_db_id)
     
     # ========================================================================
     # STANDALONE MODE
