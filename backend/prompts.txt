@@ -1,0 +1,51 @@
+S2 APPROVED: IMPLEMENT NOW. This is the final instruction. Do not re-run S1 or any audit. Do not ask questions unless a step is impossible to complete; in that case, record it and continue.
+
+BASELINE
+Use the S1 report as the baseline. Its findings are accepted as true, except that the claim "233 tests pass" is not accepted until the full test run below is done.
+
+APPROVED ITEMS (owner approves all of these by name)
+
+A. D1 qualified names: Add `name` and `qualified_name` to every symbol record. Keep the existing symbol_id format.
+
+B. D2 module-level calls: Record calls outside any function with caller "<module>". Calls in a class body but outside a method get the class's qualified name as caller. Calls inside lambdas use the enclosing function or method, or "<module>" if none.
+
+C. D3 async: Record AsyncFunctionDef as a function record with is_async true. Record FunctionDef with is_async false.
+
+D. D4 output shape: The output is {symbols, references, failures}.
+   - symbols holds Module, function, class records. Each has a kind field.
+   - references holds call, import, and import_from records. Each has a kind field.
+   - Constants: keep them exactly as they are today, in the symbols list with kind "constant". Do not change their behavior. This is the default decision; it is not in scope to change.
+   - Remove the old call_graph structure from the output only if the replacement covers everything it did. If the graph walk still needs it, keep it internally and say so in the report.
+
+E. Call line numbers: Every call record includes the line where the call starts.
+
+F. Module records: Create one module record per indexed file, with module name and file path.
+
+G. Failure records: Each failure has stage ("read" or "parse"), file, line, column (parse only), and reason. For read failures, reason is "encoding or IO error". For parse failures, reason is the exception type.
+
+H. Keep existing tests passing where the failure is only a structure change. When a test fails because it reads the old structure, update only the access path (for example, dict lookup to list filter). Do not change expected values or weaken assertions. List every test file and test name you changed.
+
+EXCLUSIONS (hard limits)
+- Do not edit orchestrator.py or app/api/pipeline_runs.py. Both have uncommitted changes that are not ours.
+- Do not read anything under old_orchestrator or tests/answer_keys.
+- Do not change code outside the indexer and the tests that read it.
+
+VERIFICATION (run each once, then report the output verbatim)
+1. Full test suite: `python -m pytest -q`. Report passed, failed, and error counts from the output.
+2. Indexer on tests\fixtures\api_server. Report file, symbol, reference, and failure counts by kind, from the output.
+3. Failure handling on a temp folder with bad_syntax.py and bad_utf8.py. Show the failure records.
+4. Async and module-level sample (the sample.py from S1 E4). Show the records for each expected item.
+5. Delete all temp folders and confirm.
+6. Run git status --short and show that only the indexer files and the tests you changed appear as modified, along with the three pre-existing files.
+
+STOP CONDITIONS
+- If more than 15 tests need changes under item H, stop and report the list without making the changes.
+- If a verification step fails, fix the cause in the indexer if it is within items A through H. If it is outside those items, report it and stop.
+
+FINAL REPORT (one message)
+1. Changes made, by file, with item letter.
+2. Verification output, verbatim, for steps 1 through 6.
+3. Remaining gaps, if any, with one line each.
+4. Tests you changed under item H.
+
+End with: "S2 implementation complete."
