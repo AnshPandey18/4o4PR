@@ -1,51 +1,93 @@
-S2 APPROVED: IMPLEMENT NOW. This is the final instruction. Do not re-run S1 or any audit. Do not ask questions unless a step is impossible to complete; in that case, record it and continue.
+IMPLEMENT LLM CALLS IN THE BUG DETECTOR, USING THE SAME OMNIROUTE SETUP AS RCA
 
-BASELINE
-Use the S1 report as the baseline. Its findings are accepted as true, except that the claim "233 tests pass" is not accepted until the full test run below is done.
+Goal: Collector 4 (LLM reviewer) and the llm verification step in the bug detector must call the LLM through OmniRoute, using the same client, configuration, and environment variables the RCA already uses. Do not add RCA to orchestrator.py. Do not print or commit secret values.
 
-APPROVED ITEMS (owner approves all of these by name)
+RULES
+- Do not read anything under old_orchestrator or tests\answer_keys.
+- Do not print the values of any environment variable. Report variable names only.
+- Do not commit or modify .env. Confirm .env is in .gitignore; if it is not, report that and stop.
+- Do not change RCA behavior. If you move shared code, RCA must keep working with no change in its output.
+- Do not add RCA to orchestrator.py.
 
-A. D1 qualified names: Add `name` and `qualified_name` to every symbol record. Keep the existing symbol_id format.
+STEP 0: STATE
+Run `git status --short` and `git log --oneline -3` and quote them. Start only if the working tree is clean. If it is not, list the changed files and stop.
 
-B. D2 module-level calls: Record calls outside any function with caller "<module>". Calls in a class body but outside a method get the class's qualified name as caller. Calls inside lambdas use the enclosing function or method, or "<module>" if none.
+STEP 1: STUDY HOW RCA CALLS OMNIROUTE (read only, no edits)
+1.1 Find every file that calls OmniRoute. Search for "omniroute", "OMNIROUTE", "base_url", "api_key", "chat.completions", "messages.create", and "requests.post" across the backend, excluding old_orchestrator. Quote each match with file and line.
+1.2 For the RCA call path, report:
+   - The client module and class or function that makes the request.
+   - The environment variable names it reads (names only). Check .env with a command that prints names only, for example: `Get-Content .env | ForEach-Object { ($_ -split '=')[0] }`. Do not print values.
+   - How the model name is chosen (config file, env var, or hardcoded). Quote the line.
+   - Request shape: endpoint, headers, body fields such as model, max tokens, temperature, and messages.
+   - Response parsing: which field holds the text.
+   - Timeout, retry, and error handling.
+   - Any caching or rate limiting.
+1.3 Report whether the RCA client can be imported from the bug detector without side effects (no orchestrator import, no global state that starts a run).
+1.4 Report the LLM_DISABLED variable: where it is read, where it is set, and everything that sets it. Quote each line. Note that the earlier run set it because of --stop-after. The bug detector runs before the stop point, so that is a bug to fix in Step 3.
 
-C. D3 async: Record AsyncFunctionDef as a function record with is_async true. Record FunctionDef with is_async false.
+STEP 2: SHARED CLIENT
+2.1 If the RCA client is in a module the bug detector can import, import it and do not copy it.
+2.2 If it is only inside the RCA code, move the client into backend\llm\omniroute.py with the same function signature and behavior. Update the RCA to import it. Quote the diff for RCA. The RCA's behavior must not change.
+2.3 The client must expose one function, for example call_omniroute(prompt, max_tokens, temperature) -> str, that raises a typed error on failure. Do not put any run state inside it.
 
-D. D4 output shape: The output is {symbols, references, failures}.
-   - symbols holds Module, function, class records. Each has a kind field.
-   - references holds call, import, and import_from records. Each has a kind field.
-   - Constants: keep them exactly as they are today, in the symbols list with kind "constant". Do not change their behavior. This is the default decision; it is not in scope to change.
-   - Remove the old call_graph structure from the output only if the replacement covers everything it did. If the graph walk still needs it, keep it internally and say so in the report.
+STEP 3: COLLECTOR 4 (LLM REVIEWER)
+3.1 Function selection: select every function from index.json that contains an if, a call, or a return. Include methods. Quote the total selected count.
+3.2 Prompt: build one prompt per function containing:
+   - Qualified name, signature, and docstring.
+   - The function body with line numbers, taken from the file using line_start and line_end.
+   - "Calls" and "Called by" from graph.json, using qualified names. Show "none" when empty.
+   - The required JSON output schema: {"category": string, "line_start": int, "line_end": int, "reason": string} or {"no_bugs": true}.
+   - The instruction: report only defects that are visible in the code. Do not report style issues.
+3.3 Cache: key the cache on sha256(model + prompt). Store responses in runs\cache\llm\. On a cache hit, do not call the API. Count hits.
+3.4 Call: send each prompt sequentially through the shared client. Set a timeout and retry up to 2 times on network or 5xx errors, with exponential backoff. Do not retry on 4xx or parse failures.
+3.5 Save each raw response to the run directory as llm_review_<n>.txt, with the prompt followed by the response. One file per function, numbered in selection order.
+3.6 Validation, in this order:
+   a. Parse the response as JSON. If parsing fails, try to extract the first JSON object from the text. Count a rejected response if that also fails.
+   b. If the object is {"no_bugs": true}, count it as valid with no candidate.
+   c. Otherwise require category (non-empty string), line_start and line_end (integers), and reason (non-empty string).
+   d. Require line_start <= line_end, and both within the function's line span from index.json. Reject otherwise.
+3.7 Valid bug responses become llm candidates with source "llm", the function's qualified name as symbol, the returned line span, the category, and the reason as description. Keep the raw response in candidate.raw.
+3.8 Failure isolation: an error on one function is logged and counted, and the loop continues.
+3.9 Kill switch: replace the LLM_DISABLED behavior with a dedicated flag, for example --llm off, that defaults to on. --stop-after must not disable the LLM collector. Report the old and new flag definitions.
 
-E. Call line numbers: Every call record includes the line where the call starts.
+STEP 4: STATUS COUNTERS
+Add these to status.json:
+- llm_functions_selected
+- llm_cache_hits
+- llm_calls_made
+- llm_call_errors
+- llm_responses_valid
+- llm_responses_rejected
+- llm_candidates
+Write them from the collector's own counters, not from the number of files written.
 
-F. Module records: Create one module record per indexed file, with module name and file path.
+STEP 5: FIRST TEST, ONE FUNCTION ONLY
+5.1 Add a way to run Collector 4 on a single function by qualified name, for example --llm-only UserService._validate_user. Put it in the bug detector's CLI, not in the orchestrator.
+5.2 Run it on tests\fixtures\api_server.
+5.3 Quote:
+   - The raw response from llm_review_<n>.txt.
+   - The parsed candidate, if any.
+   - The status counters.
+5.4 Expected: the response reports a bug in UserService._validate_user, with a reason that says the function returns True regardless of its inputs. If the response does not say this, stop and report the response. Do not adjust the prompt to force the answer.
 
-G. Failure records: Each failure has stage ("read" or "parse"), file, line, column (parse only), and reason. For read failures, reason is "encoding or IO error". For parse failures, reason is the exception type.
+STEP 6: FULL COLLECTOR RUN
+6.1 Run the full pipeline once through the orchestrator on tests\fixtures\api_server.
+6.2 Quote the new run_id and the status counters from status.json.
+6.3 Check that llm_functions_selected equals the number of llm_review files written plus cache hits. Quote both numbers.
 
-H. Keep existing tests passing where the failure is only a structure change. When a test fails because it reads the old structure, update only the access path (for example, dict lookup to list filter). Do not change expected values or weaken assertions. List every test file and test name you changed.
+STEP 7: VERIFY LLM CANDIDATES (only after Step 5 and Step 6 pass)
+7.1 For each llm candidate, ask the LLM for one pytest test that exercises the suspect function with inputs that should expose the bug. Use the same client and the same cache.
+7.2 Write the test to runs\<run_id>\repro\<candidate_id>\test_repro.py. Do not write into the repo.
+7.3 Run it in a subprocess with a 60-second timeout.
+7.4 Mark confirmed only if the test fails with an assertion or an exception raised from the suspect code. Mark unconfirmed otherwise, with the reason.
+7.5 Quote the verification result for the _validate_user candidate.
 
-EXCLUSIONS (hard limits)
-- Do not edit orchestrator.py or app/api/pipeline_runs.py. Both have uncommitted changes that are not ours.
-- Do not read anything under old_orchestrator or tests/answer_keys.
-- Do not change code outside the indexer and the tests that read it.
+REPORT
+1. STEP 1 findings, with names only for environment variables.
+2. Files changed, by step.
+3. The raw response for _validate_user and the parsed candidate.
+4. Status counters from the full run.
+5. Verification result for the _validate_user candidate.
+6. Anything not done, with the technical blocker.
 
-VERIFICATION (run each once, then report the output verbatim)
-1. Full test suite: `python -m pytest -q`. Report passed, failed, and error counts from the output.
-2. Indexer on tests\fixtures\api_server. Report file, symbol, reference, and failure counts by kind, from the output.
-3. Failure handling on a temp folder with bad_syntax.py and bad_utf8.py. Show the failure records.
-4. Async and module-level sample (the sample.py from S1 E4). Show the records for each expected item.
-5. Delete all temp folders and confirm.
-6. Run git status --short and show that only the indexer files and the tests you changed appear as modified, along with the three pre-existing files.
-
-STOP CONDITIONS
-- If more than 15 tests need changes under item H, stop and report the list without making the changes.
-- If a verification step fails, fix the cause in the indexer if it is within items A through H. If it is outside those items, report it and stop.
-
-FINAL REPORT (one message)
-1. Changes made, by file, with item letter.
-2. Verification output, verbatim, for steps 1 through 6.
-3. Remaining gaps, if any, with one line each.
-4. Tests you changed under item H.
-
-End with: "S2 implementation complete."
+End with "LLM collector complete" only if Steps 1 through 6 pass with quoted output. Step 7 may be marked "not run" with a reason.

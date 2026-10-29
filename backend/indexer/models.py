@@ -149,15 +149,20 @@ class IndexData:
     TASK 6: Includes test_to_source_transitive.
     TASK 5: call_graph includes references and referenced_by.
     S2-D: Separate symbols, references, failures lists (D4).
+    
+    Schema 13: New architecture format with fingerprint validation.
     """
     schema_version: str
     run_id: str  # Generated from UTC time: r_YYYYMMDD_HHMMSS
-    content_hash: str
+    content_hash: str  # Now called fingerprint in output
     generated_at: str  # ISO format with Z suffix from UTC
     import_roots: List[str]
-    symbols: List[Dict[str, Any]]  # S2-D: List of symbol records
-    references: List[Dict[str, Any]]  # S2-D: List of call/import records
-    failures: List[Dict[str, Any]]  # S2-G: List of failure records
+    repo_path: str  # Added for schema 13
+    indexer_version: str  # Added for schema 13
+    commit: Optional[str] = None  # Git commit hash or null
+    symbols: List[Dict[str, Any]] = field(default_factory=list)  # S2-D: List of symbol records
+    references: List[Dict[str, Any]] = field(default_factory=list)  # S2-D: List of call/import records
+    failures: List[Dict[str, Any]] = field(default_factory=list)  # S2-G: List of failure records
     # Legacy fields kept for compatibility with existing tools
     files: Dict[str, FileInfo] = field(default_factory=dict)
     call_graph: Dict[str, Any] = field(default_factory=dict)  # Kept internally
@@ -168,26 +173,33 @@ class IndexData:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization.
         
-        S2-D: Returns {symbols, references, failures} structure.
-        Also keeps legacy 'files' and backward-compatible symbol dict for tests.
+        Schema 13 format: {schema_version, commit, fingerprint, indexer_version, 
+                          repo_path, symbols, references, failures}
+        Also keeps legacy fields for backward compatibility.
         """
-        # Build backward-compatible symbols dict from list
+        # Build backward-compatible symbols dict from list for legacy code
         symbols_dict = {}
         for sym in self.symbols:
             if sym['kind'] != 'module':  # Exclude modules from legacy dict
-                symbols_dict[sym['symbol_id']] = sym
+                symbols_dict[sym['id']] = sym
         
         return {
+            # Schema 13 required fields
             'schema_version': self.schema_version,
+            'commit': self.commit,
+            'fingerprint': self.content_hash,  # Renamed from content_hash
+            'indexer_version': self.indexer_version,
+            'repo_path': self.repo_path,
+            'symbols': self.symbols,  # New list structure
+            'references': self.references,  # New list structure
+            'failures': self.failures,  # New list structure
+            
+            # Legacy fields for compatibility
             'run_id': self.run_id,
             'content_hash': self.content_hash,
             'generated_at': self.generated_at,
             'import_roots': self.import_roots,
-            'symbols': symbols_dict,  # Legacy dict format for compatibility
-            'symbols_list': self.symbols,  # S2-D: New list structure
-            'references': self.references,  # S2-D: New list structure
-            'failures': self.failures,  # S2-G: New list structure
-            # Legacy fields for compatibility
+            'symbols_dict': symbols_dict,  # Legacy dict format
             'files': {
                 path: {
                     'kind': info.kind,
@@ -220,7 +232,7 @@ class IndexData:
     def from_dict(data: Dict[str, Any]) -> 'IndexData':
         """Create from dictionary loaded from JSON.
         
-        S2-D: Handles both new {symbols, references, failures} and legacy structure.
+        Handles both schema 13 and legacy formats.
         """
         # Handle legacy 'files' structure
         files = {}
@@ -266,13 +278,22 @@ class IndexData:
                 for err in data.get('parse_errors', [])
             ]
         
+        # Get symbols list (schema 13 has it at top level, legacy has symbols_list)
+        symbols_list = data.get('symbols', [])
+        if not isinstance(symbols_list, list):
+            # Legacy format - symbols is a dict, look for symbols_list
+            symbols_list = data.get('symbols_list', [])
+        
         return IndexData(
             schema_version=data['schema_version'],
-            run_id=data['run_id'],
-            content_hash=data['content_hash'],
-            generated_at=data['generated_at'],
-            import_roots=data['import_roots'],
-            symbols=data.get('symbols', []),
+            run_id=data.get('run_id', ''),
+            content_hash=data.get('fingerprint', data.get('content_hash', '')),
+            generated_at=data.get('generated_at', ''),
+            import_roots=data.get('import_roots', []),
+            repo_path=data.get('repo_path', ''),
+            indexer_version=data.get('indexer_version', ''),
+            commit=data.get('commit'),
+            symbols=symbols_list,
             references=data.get('references', []),
             failures=[
                 {

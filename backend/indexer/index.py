@@ -26,7 +26,53 @@ from .models import IndexData, FileInfo, SymbolInfo, ParseError
 logger = logging.getLogger(__name__)
 
 # Schema version - single source of truth
-SCHEMA_VERSION = "1.2"
+# TASK 1.10: Updated to schema version 13 for new architecture
+SCHEMA_VERSION = "13"
+INDEXER_VERSION = "2.0.0"  # Indexer version for fingerprint
+
+
+def load_cached_index(repo_path: Path, cache_dir: Path, import_roots: List[str], 
+                      exclude_patterns: List[str]) -> Optional['IndexData']:
+    """Load cached index if valid (TASK 1.9.4).
+    
+    Validates cache by comparing fingerprint (content hash).
+    
+    Args:
+        repo_path: Repository root path
+        cache_dir: Cache directory
+        import_roots: Import roots list
+        exclude_patterns: Exclusion patterns
+        
+    Returns:
+        IndexData if cache is valid, None otherwise
+    """
+    # Compute current fingerprint
+    current_fingerprint = content_hash(
+        repo_path,
+        import_roots,
+        exclude_patterns,
+        SCHEMA_VERSION
+    )
+    
+    # Check if cached index exists
+    cache_file = cache_dir / f"index_{current_fingerprint[:16]}.json"
+    if not cache_file.exists():
+        return None
+    
+    try:
+        data = read_json(cache_file)
+        stored_fingerprint = data.get('fingerprint')
+        
+        # Validate fingerprint matches
+        if stored_fingerprint != current_fingerprint:
+            logger.info("Cache fingerprint mismatch, invalidating")
+            return None
+        
+        logger.info(f"Cache valid, loading from {cache_file.name}")
+        return IndexData.from_dict(data)
+    except Exception as e:
+        logger.warning(f"Failed to load cached index: {e}")
+        return None
 
 # TASK 4: Complete set of builtins from dir(builtins)
 # Used to classify calls correctly - exceptions, types, functions
@@ -182,7 +228,7 @@ class RepoIndexer:
                 # Update run_id and timestamp (both derived from same now_utc)
                 cached.run_id = run_id
                 # FIX C5: Use Z suffix OR +00:00 offset, not both
-                cached.generated_at = now_utc.isoformat().replace('+00:00', 'Z')
+                cached.generated_at = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
                 return cached
         
         # Collect all Python files
@@ -248,7 +294,7 @@ class RepoIndexer:
         self._extract_references(symbols, files)
         
         # Build call graph
-        call_graph = self._build_call_graph(files, symbols)
+        call_graph, call_lines = self._build_call_graph(files, symbols)
         logger.info(f"Built call graph with {len(call_graph['callees'])} entries")
         
         # TASK 6: Generate test_to_source mapping
@@ -266,7 +312,7 @@ class RepoIndexer:
         for rel_path, file_info in files.items():
             if file_info.parse_ok and file_info.module:
                 module_sym = {
-                    'symbol_id': f"{rel_path}::<module>",
+                    'id': f"{rel_path}::<module>",  # FIX 4: Renamed from symbol_id
                     'kind': 'module',
                     'name': file_info.module.split('.')[-1] if file_info.module else rel_path,
                     'qualified_name': file_info.module or rel_path,
@@ -280,7 +326,7 @@ class RepoIndexer:
         # Add all other symbols
         for sym_id, sym in symbols.items():
             sym_dict = {
-                'symbol_id': sym_id,
+                'id': sym_id,  # FIX 4: Renamed from symbol_id
                 'kind': sym.kind,
                 'name': sym.name,
                 'qualified_name': sym.qualified_name,  # S2-A (D1)
@@ -310,16 +356,17 @@ class RepoIndexer:
             symbols_list.append(sym_dict)
         
         # S2-D: Build references list (calls + imports)
-        # Add call references with line numbers (S2-B, S2-E)
+        # Add call references with line numbers (S2-B, S2-E, FIX 2)
         for caller_id, callee_ids in call_graph.get('callees', {}).items():
             for callee_id in callee_ids:
-                # Get line number from call tracking (will add in _build_call_graph)
+                # Get line number from call tracking
+                line_num = call_lines.get((caller_id, callee_id), 0)
                 call_ref = {
                     'kind': 'call',
                     'caller': caller_id,
                     'callee': callee_id,
                     'file': caller_id.split('::')[0] if '::' in caller_id else '',
-                    'line': 0  # Line tracking to be added in _build_call_graph update
+                    'line': line_num
                 }
                 references_list.append(call_ref)
         
@@ -353,14 +400,34 @@ class RepoIndexer:
             for err in parse_errors
         ]
         
-        # Create index data
+        # Create index data (Schema 13)
+        # Get commit hash if repo has .git
+        commit_hash = None
+        git_dir = self.project_root / '.git'
+        if git_dir.exists():
+            try:
+                import subprocess
+                result = subprocess.run(
+                    ['git', 'rev-parse', 'HEAD'],
+                    cwd=self.project_root,
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    commit_hash = result.stdout.strip()
+            except Exception:
+                pass  # Git not available or error
+        
         index_data = IndexData(
             schema_version=self.schema_version,
             run_id=run_id,
             content_hash=chash,
-            # FIX C5: Use Z suffix OR +00:00 offset, not both
-            generated_at=now_utc.isoformat().replace('+00:00', 'Z'),
+            generated_at=now_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
             import_roots=self.import_roots,
+            repo_path=str(self.project_root.resolve()),
+            indexer_version=INDEXER_VERSION,
+            commit=commit_hash,
             symbols=symbols_list,  # S2-D: New list structure
             references=references_list,  # S2-D: New list structure
             failures=failures_list,  # S2-G: New list structure
@@ -1352,10 +1419,11 @@ class RepoIndexer:
         self,
         files: Dict[str, FileInfo],
         symbols: Dict[str, SymbolInfo]
-    ) -> Dict[str, Any]:
+    ) -> Tuple[Dict[str, Any], Dict[Tuple[str, str], int]]:
         """Build call graph for all functions.
         
         TASK 1: Records unresolved calls with details.
+        FIX 2: Tracks line numbers for each call edge.
         
         Only includes resolved calls with high certainty.
         
@@ -1364,12 +1432,14 @@ class RepoIndexer:
             symbols: Dict of SymbolInfo
             
         Returns:
-            Dict with callees, callers, references, referenced_by
+            Tuple of (call_graph_dict, call_lines_dict)
+            where call_lines_dict maps (caller_id, callee_id) -> line_number
         """
         callees: Dict[str, List[str]] = {}
         callers: Dict[str, List[str]] = {}
         references: Dict[str, List[str]] = {}  # TASK 5
         referenced_by: Dict[str, List[str]] = {}  # TASK 5
+        call_lines: Dict[Tuple[str, str], int] = {}  # FIX 2: Track line numbers
         
         # For each function, find its calls
         for symbol_id, symbol in symbols.items():
@@ -1392,9 +1462,22 @@ class RepoIndexer:
                     func_node = self._find_function_node(tree, symbol)
                     if func_node:
                         # FIX BUG 2: Pass symbol.parent_class for method resolution
-                        resolved, unresolved_list, builtin_list = self._extract_calls(
+                        # FIX 2: Now returns tuples with line numbers
+                        resolved_with_lines, unresolved_list, builtin_list = self._extract_calls(
                             func_node, symbol.file, files[symbol.file], symbols, symbol.parent_class
                         )
+                        
+                        # Extract call IDs and track line numbers
+                        # Use dict to track latest line number for each unique call
+                        call_dict = {}
+                        for callee_id, line_num in resolved_with_lines:
+                            if callee_id not in call_dict or line_num > 0:
+                                call_dict[callee_id] = line_num
+                        
+                        resolved = list(call_dict.keys())
+                        for callee_id, line_num in call_dict.items():
+                            call_lines[(symbol_id, callee_id)] = line_num
+                        
                         callees[symbol_id] = resolved
                         symbol.unresolved_calls = len(unresolved_list)
                         symbol.unresolved = unresolved_list
@@ -1435,7 +1518,7 @@ class RepoIndexer:
                     if symbol_id not in decorates[decorator_id]:
                         decorates[decorator_id].append(symbol_id)
         
-        return {
+        call_graph = {
             'callees': callees,
             'callers': callers,
             'references': references,
@@ -1443,6 +1526,8 @@ class RepoIndexer:
             'decorated_by': decorated_by,
             'decorates': decorates
         }
+        
+        return call_graph, call_lines
     
     def _find_function_node(
         self,
@@ -1486,10 +1571,10 @@ class RepoIndexer:
         file_info: FileInfo,
         symbols: Dict[str, SymbolInfo],
         current_class: Optional[str] = None
-    ) -> Tuple[List[str], List[Dict[str, Any]], List[str]]:
+    ) -> Tuple[List[Tuple[str, int]], List[Dict[str, Any]], List[str]]:
         """Extract function calls from a function body.
         
-        TASK 1: Returns (resolved_call_ids, unresolved_list, builtin_calls).
+        TASK 1: Returns (resolved_calls_with_lines, unresolved_list, builtin_calls).
         
         Only resolves calls with high certainty:
         - Same-file function calls
@@ -1504,6 +1589,7 @@ class RepoIndexer:
         
         FIX BUG 2: Pass current_class to _resolve_call for self.method() resolution.
         FIX BUG 3: Build type inference map for instance variables.
+        FIX 2: Track line numbers for each call.
         
         Args:
             func_node: Function AST node
@@ -1513,9 +1599,10 @@ class RepoIndexer:
             current_class: Current class name if this is a method
             
         Returns:
-            Tuple of (resolved_call_ids, unresolved_details_list, builtin_names_list)
+            Tuple of (resolved_calls_with_lines, unresolved_details_list, builtin_names_list)
+            where resolved_calls_with_lines is List[Tuple[call_id, line_number]]
         """
-        resolved_calls: Set[str] = set()
+        resolved_calls: List[Tuple[str, int]] = []
         unresolved_list: List[Dict[str, Any]] = []
         builtin_calls: Set[str] = set()
         
@@ -1547,12 +1634,15 @@ class RepoIndexer:
         
         for node in ast.walk(func_node):
             if isinstance(node, ast.Call):
+                # FIX 2: Get line number from node
+                line_num = node.lineno
+                
                 # Try to resolve the call (FIX BUG 2: Pass current_class)
                 call_id, unresolved_dict, is_builtin = self._resolve_call(
                     node, file_path, import_map, symbols, current_class, type_map, param_names
                 )
                 if call_id:
-                    resolved_calls.add(call_id)
+                    resolved_calls.append((call_id, line_num))
                 elif is_builtin:
                     # Extract builtin name
                     if isinstance(node.func, ast.Name):
@@ -1563,7 +1653,7 @@ class RepoIndexer:
                     if unresolved_dict:
                         unresolved_list.append(unresolved_dict)
         
-        return list(sorted(resolved_calls)), unresolved_list, list(sorted(builtin_calls))
+        return resolved_calls, unresolved_list, list(sorted(builtin_calls))
     
     def _build_import_map(self, imports: List[Dict]) -> Dict[str, str]:
         """Build a mapping from imported names to their resolved file paths.
