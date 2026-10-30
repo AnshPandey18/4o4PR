@@ -51,6 +51,7 @@ htmlcov/
 # Pipeline Output
 runs/
 repos/
+output/
 
 # Logs
 *.log

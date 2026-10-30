@@ -11,8 +11,8 @@ import json
 import os
 from dataclasses import asdict, dataclass, field
 from typing import Any, Callable, Dict, List, Mapping, Optional, Protocol, Union
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+
+from llm.omniroute import call_omniroute, OmnirouteError
 
 
 class RootCauseAnalysisError(ValueError):
@@ -81,77 +81,27 @@ class OpenAICompatibleClient:
         model: Optional[str] = None,
         timeout: float = 120.0,
     ) -> None:
-        self.base_url = (base_url or os.getenv("OMNIROUTE_BASE_URL", "http://localhost:20128/v1")).rstrip("/")
-        self.api_key = api_key or os.getenv("OMNIROUTE_API_KEY")
-        self.model = model or os.getenv("OMNIROUTE_MODEL", "auto/coding")
+        self.base_url = base_url
+        self.api_key = api_key
+        self.model = model
         self.timeout = timeout
 
     def complete(self, prompt: str) -> str:
         """Send one prompt to the configured OpenAI-compatible chat endpoint."""
-        # Check LLM kill switch
-        if os.getenv('LLM_DISABLED') == '1':
-            raise LLMDisabledError("LLM is disabled (LLM_DISABLED=1)")
-        
-        if not self.api_key:
-            raise RootCauseAnalysisError("OMNIROUTE_API_KEY is not configured")
-
-        payload = {
-            "model": self.model,
-            "temperature": 0,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt,
-                }
-            ],
-        }
-        request = Request(
-            f"{self.base_url}/chat/completions",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-            },
-            method="POST",
-        )
-
         try:
-            with urlopen(request, timeout=self.timeout) as response:
-                raw_body = response.read().decode("utf-8")
-                try:
-                    body = json.loads(raw_body)
-                except json.JSONDecodeError as exc:
-                    status = getattr(response, "status", "unknown")
-                    content_type = response.headers.get("Content-Type", "unknown")
-                    details = raw_body.strip()[:1000] or "<empty response body>"
-                    raise RootCauseAnalysisError(
-                        "RCA model returned a non-JSON response: "
-                        f"HTTP {status}, Content-Type {content_type}: {details}"
-                    ) from exc
-        except HTTPError as exc:
-            try:
-                details = exc.read().decode("utf-8", errors="replace").strip()
-            except Exception:
-                details = ""
-            suffix = f": {details[:1000]}" if details else ""
-            raise RootCauseAnalysisError(
-                f"RCA model request failed: HTTP {exc.code} {exc.reason}{suffix}"
-            ) from exc
-        except (URLError, TimeoutError, UnicodeError) as exc:
-            raise RootCauseAnalysisError(f"RCA model request failed: {exc}") from exc
-
-        try:
-            content = body["choices"][0]["message"]["content"]
-        except (KeyError, IndexError, TypeError) as exc:
-            raise RootCauseAnalysisError("RCA model response has no chat completion content") from exc
-
-        if isinstance(content, list):
-            content = "".join(
-                part.get("text", "") for part in content if isinstance(part, Mapping)
+            return call_omniroute(
+                prompt=prompt,
+                temperature=0.0,
+                base_url=self.base_url,
+                api_key=self.api_key,
+                model=self.model,
+                timeout=self.timeout,
             )
-        if not isinstance(content, str) or not content.strip():
-            raise RootCauseAnalysisError("RCA model returned empty content")
-        return content
+        except OmnirouteError as exc:
+            # Wrap in RootCauseAnalysisError for backward compatibility
+            if "LLM is disabled" in str(exc):
+                raise LLMDisabledError(str(exc)) from exc
+            raise RootCauseAnalysisError(str(exc)) from exc
 
 
 Client = Union[LLMClient, Callable[[str], str]]

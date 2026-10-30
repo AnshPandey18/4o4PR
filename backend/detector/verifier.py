@@ -94,11 +94,10 @@ class CandidateVerifier:
         
         # ITEM 2.3: llm candidates - generate test and verify
         if source == 'llm':
-            # Check LLM kill switch
-            if os.getenv('LLM_DISABLED') == '1':
-                candidate['verified'] = 'unconfirmed'
-                candidate['verification_reason'] = 'LLM disabled'
-                return candidate
+            # LLM verification would go here (not yet implemented)
+            candidate['verified'] = 'unconfirmed'
+            candidate['verification_reason'] = 'LLM verification not implemented'
+            return candidate
             
             candidate_id = candidate['candidate_id']
             
