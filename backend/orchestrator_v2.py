@@ -13,6 +13,10 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, Optional, List
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
 
 # Add backend to path
 BACKEND_DIR = Path(__file__).parent
@@ -48,7 +52,8 @@ class PipelineOrchestrator:
         output_dir: Path,
         settings: Any,
         run_id: Optional[str] = None,
-        stop_after: Optional[str] = None
+        stop_after: Optional[str] = None,
+        llm_enabled: bool = True
     ):
         """Initialize orchestrator.
         
@@ -58,11 +63,13 @@ class PipelineOrchestrator:
             output_dir: Output directory for run
             run_id: Optional run ID
             stop_after: Optional stage to stop after
+            llm_enabled: Whether LLM reviewer is enabled (default True)
         """
         self.repo_root = repo_root.resolve()
         self.output_dir = output_dir.resolve()
         self.settings = settings
         self.stop_after = stop_after
+        self.llm_enabled = llm_enabled
         
         # Generate run ID if not provided
         now_utc = datetime.now(timezone.utc)
@@ -73,10 +80,7 @@ class PipelineOrchestrator:
         self.run_dir = output_dir / 'runs' / self.run_id
         ensure_dir(self.run_dir)
         
-        # TASK 6.9: Set LLM kill switch if stop_after is set
-        if stop_after:
-            os.environ['LLM_DISABLED'] = '1'
-            logger.info("LLM kill switch enabled (--stop-after flag)")
+        # Don't set LLM_DISABLED here - llm_enabled flag is now passed directly to bug_detector
         
         # Paths
         self.index_path = self.run_dir / 'index.json'
@@ -328,11 +332,13 @@ class PipelineOrchestrator:
         logger.info("=" * 80)
         
         try:
+            # Use llm_enabled from orchestrator (not from LLM_DISABLED env var)
             groups, reports = run_bug_detector(
                 self.repo_root,
                 self.run_dir,
                 self.index_path,
-                self.graph_path
+                self.graph_path,
+                llm_enabled=self.llm_enabled
             )
             
             # Count by verification status
@@ -433,6 +439,14 @@ class PipelineOrchestrator:
         Returns:
             Exit code
         """
+        # Read existing status if detector wrote one (for LLM counters, etc.)
+        existing_status = {}
+        if self.status_path.exists():
+            try:
+                existing_status = read_json(self.status_path)
+            except Exception:
+                pass
+        
         status = {
             'run_id': self.run_id,
             'stage_completed': stage,
@@ -442,6 +456,14 @@ class PipelineOrchestrator:
             'statistics': self.stats,
             'failed_collectors': self.failed_collectors
         }
+        
+        # Merge any additional fields from detector (e.g., LLM counters)
+        for key, value in existing_status.items():
+            if key not in status:
+                status[key] = value
+            elif key == 'statistics' and isinstance(value, dict):
+                # Merge statistics
+                status['statistics'].update(value)
         
         write_json(self.status_path, status)
         
@@ -468,6 +490,10 @@ def main():
     parser.add_argument('--stop-after', choices=['indexer', 'graph', 'bm25', 'detector', 'context'],
                        help="Stop after this stage")
     parser.add_argument('--config', type=Path, help="Config file (uses default if not provided)")
+    parser.add_argument('--llm', dest='llm_enabled', action='store_true', default=True,
+                       help="Enable LLM reviewer (default: on)")
+    parser.add_argument('--llm-off', dest='llm_enabled', action='store_false',
+                       help="Disable LLM reviewer")
     parser.add_argument('-v', '--verbose', action='store_true', help="Verbose logging")
     
     args = parser.parse_args()
@@ -492,7 +518,8 @@ def main():
         output_dir=args.output,
         settings=settings,
         run_id=args.run_id,
-        stop_after=args.stop_after
+        stop_after=args.stop_after,
+        llm_enabled=args.llm_enabled
     )
     
     return orchestrator.run()
